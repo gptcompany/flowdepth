@@ -4,7 +4,7 @@ mod common;
 
 use common::{fixture, now};
 use dash_core::model::{Row, Severity};
-use dash_core::sources::alerts::{self, AmAlert};
+use dash_core::sources::alerts::{self, AlertsReply};
 use dash_core::sources::prom::{self, PromReply};
 use dash_core::sources::rektslug::{self, Health, Summary};
 
@@ -71,36 +71,63 @@ fn prom_error_status_is_reason_not_panic() {
 }
 
 #[test]
-fn alerts_map_severity_label_and_staleness() {
-    let alerts_in: Vec<AmAlert> =
-        serde_json::from_str(&fixture("recorded/alertmanager_alerts.json")).unwrap();
-    let rows = alerts::rows(alerts_in, "http://am/", now());
+fn alerts_map_severity_label_and_pending_state() {
+    let reply: AlertsReply =
+        serde_json::from_str(&fixture("recorded/prometheus_alerts.json")).unwrap();
+    let rows = alerts::rows(reply, "http://prom/", now()).unwrap();
     assert_eq!(rows.len(), 4);
 
-    let crit = by_id(&rows, "alert:a1b2c3d4e5f60001");
+    let crit = by_id(
+        &rows,
+        "alert:alertname=HLNodeBehind,instance=localhost:9101,severity=critical",
+    );
     assert_eq!(
         values(crit),
         [
             "HLNodeBehind (localhost:9101)",
             "critical",
             "Hyperliquid node 1200 blocks behind",
-            "http://am/",
+            "http://prom/",
             "1800"
         ]
     );
     assert_eq!(crit.cells[0].severity, Severity::Crit);
 
-    let warn = by_id(&rows, "alert:a1b2c3d4e5f60002");
+    let warn = by_id(
+        &rows,
+        "alert:alertname=DiskFillingUp,instance=azure-vps,severity=warning",
+    );
     assert_eq!(warn.cells[0].severity, Severity::Warn);
     assert_eq!(values(warn)[2], "Disk 91% full");
+    // 13:45+02:00 is 11:45Z, 15 min before `now`.
+    assert_eq!(values(warn)[4], "900");
 
-    let unknown = by_id(&rows, "alert:a1b2c3d4e5f60003");
-    assert_eq!(values(unknown)[1], "unknown");
-    assert_eq!(unknown.cells[0].severity, Severity::Warn);
+    // The official-doc sample: firing without a severity label is warn, not healthy.
+    let doc = by_id(&rows, "alert:alertname=my-alert");
+    assert_eq!(values(doc)[..3], ["my-alert", "unknown", "my-alert"]);
+    assert_eq!(doc.cells[0].severity, Severity::Warn);
+    // Active since 2018: long-firing is never `stale`.
+    assert_ne!(doc.cells[0].severity, Severity::Stale);
 
-    // critical but updatedAt 30 min old: the datum is not fresh, so it must not read as live.
-    let stale = by_id(&rows, "alert:a1b2c3d4e5f60004");
-    assert_eq!(stale.cells[0].severity, Severity::Stale);
+    // pending + severity=critical: not firing yet, so pending/warn.
+    let pending = by_id(&rows, "alert:alertname=TextfileStale,severity=critical");
+    assert_eq!(values(pending)[1], "pending");
+    assert_eq!(pending.cells[0].severity, Severity::Warn);
+}
+
+#[test]
+fn alerts_error_status_is_reason_not_panic() {
+    let reply: AlertsReply =
+        serde_json::from_str(r#"{"status":"error","errorType":"internal","error":"boom"}"#)
+            .unwrap();
+    assert_eq!(alerts::rows(reply, "s", now()).unwrap_err(), "boom");
+}
+
+#[test]
+fn alerts_empty_list_is_no_rows() {
+    let reply: AlertsReply =
+        serde_json::from_str(r#"{"status":"success","data":{"alerts":[]}}"#).unwrap();
+    assert!(alerts::rows(reply, "s", now()).unwrap().is_empty());
 }
 
 #[test]
