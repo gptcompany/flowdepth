@@ -83,6 +83,10 @@ pub enum Pane {
         #[serde(default)]
         config: crate::news::Config,
     },
+    Sheet {
+        #[serde(default)]
+        config: crate::sheet::Config,
+    },
     ComparisonChart {
         stream_type: Vec<PersistStreamKind>,
         #[serde(deserialize_with = "ok_or_default")]
@@ -227,13 +231,14 @@ pub enum ContentKind {
     CandlestickChart,
     ComparisonChart,
     NewsTracker,
+    Sheet,
     GexChart,
     TimeAndSales,
     Ladder,
 }
 
 impl ContentKind {
-    pub const ALL: [ContentKind; 10] = [
+    pub const ALL: [ContentKind; 11] = [
         ContentKind::Starter,
         ContentKind::HeatmapChart,
         ContentKind::ShaderHeatmap,
@@ -241,12 +246,13 @@ impl ContentKind {
         ContentKind::CandlestickChart,
         ContentKind::ComparisonChart,
         ContentKind::NewsTracker,
+        ContentKind::Sheet,
         ContentKind::GexChart,
         ContentKind::TimeAndSales,
         ContentKind::Ladder,
     ];
 
-    pub const ADDABLE: [ContentKind; 8] = [
+    pub const ADDABLE: [ContentKind; 9] = [
         ContentKind::CandlestickChart,
         ContentKind::FootprintChart,
         ContentKind::ShaderHeatmap,
@@ -255,6 +261,7 @@ impl ContentKind {
         ContentKind::GexChart,
         ContentKind::ComparisonChart,
         ContentKind::NewsTracker,
+        ContentKind::Sheet,
     ];
 }
 
@@ -268,6 +275,7 @@ impl std::fmt::Display for ContentKind {
             ContentKind::CandlestickChart => "Candlestick Chart",
             ContentKind::ComparisonChart => "Comparison Chart",
             ContentKind::NewsTracker => "News Tracker",
+            ContentKind::Sheet => "Sheet",
             ContentKind::GexChart => "GEX Options Chart",
             ContentKind::TimeAndSales => "Time&Sales",
             ContentKind::Ladder => "DOM/Ladder",
@@ -338,7 +346,8 @@ impl PaneSetup {
                 ContentKind::Starter
                 | ContentKind::TimeAndSales
                 | ContentKind::GexChart
-                | ContentKind::NewsTracker => None,
+                | ContentKind::NewsTracker
+                | ContentKind::Sheet => None,
             };
 
         let tick_multiplier = match content_kind {
@@ -361,6 +370,7 @@ impl PaneSetup {
             | ContentKind::ComparisonChart
             | ContentKind::GexChart
             | ContentKind::NewsTracker
+            | ContentKind::Sheet
             | ContentKind::TimeAndSales
             | ContentKind::Starter => current_tick_multiplier,
         };

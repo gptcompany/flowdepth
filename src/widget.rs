@@ -20,6 +20,7 @@ pub mod column_drag;
 pub mod decorate;
 pub mod drag_handle;
 pub mod multi_split;
+pub mod sheet;
 pub mod toast;
 
 pub const PANE_CONTROL_BTN_HEIGHT: f32 = 26.0;

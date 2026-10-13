@@ -2609,6 +2609,30 @@ impl Dashboard {
         }
     }
 
+    pub fn sheet_subscriptions(&self, main_window: window::Id) -> Subscription<Message> {
+        let wrap = |window_id: window::Id, pane_id: pane_grid::Pane, state: &pane::State| {
+            state
+                .sheet_subscription(window_id, pane_id)
+                .with((window_id, pane_id))
+                .map(|((window_id, pane_id), message)| {
+                    Message::Pane(
+                        window_id,
+                        pane::Message::PaneEvent(pane_id, pane::Event::SheetInteraction(message)),
+                    )
+                })
+        };
+        let mut subscriptions = Vec::new();
+        for (pane_id, state) in self.panes.iter() {
+            subscriptions.push(wrap(main_window, *pane_id, state));
+        }
+        for (window_id, (panes, _)) in &self.popout {
+            for (pane_id, state) in panes.iter() {
+                subscriptions.push(wrap(*window_id, *pane_id, state));
+            }
+        }
+        Subscription::batch(subscriptions)
+    }
+
     pub fn news_subscriptions(
         &self,
         main_window: window::Id,

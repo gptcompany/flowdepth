@@ -2164,6 +2164,11 @@ impl Flowsurface {
             .news_subscriptions(self.main_window.id, self.network_config.proxy.as_ref())
             .with(layout_id)
             .map(|(layout_id, event)| Message::Dashboard { layout_id, event });
+        let sheets = self
+            .active_dashboard()
+            .sheet_subscriptions(self.main_window.id)
+            .with(layout_id)
+            .map(|(layout_id, event)| Message::Dashboard { layout_id, event });
         let tick = iced::time::every(Duration::from_millis(16)).map(Message::Tick);
         let debug_terminal = if self.debug_terminal.should_poll() {
             iced::time::every(Duration::from_millis(500))
@@ -2205,6 +2210,7 @@ impl Flowsurface {
         Subscription::batch(vec![
             exchange_streams,
             news,
+            sheets,
             sidebar,
             window_events,
             tick,

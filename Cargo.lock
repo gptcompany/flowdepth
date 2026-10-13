@@ -1574,6 +1574,7 @@ dependencies = [
  "gif",
  "iced",
  "iced_core",
+ "iced_test",
  "iced_wgpu",
  "image",
  "log",
@@ -2349,6 +2350,30 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "sipper",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "iced_selector"
+version = "0.15.0-dev"
+source = "git+https://github.com/iced-rs/iced.git?rev=2b275718d19a5cf306537e1d2417a1f5e9d94ef4#2b275718d19a5cf306537e1d2417a1f5e9d94ef4"
+dependencies = [
+ "iced_core",
+]
+
+[[package]]
+name = "iced_test"
+version = "0.15.0-dev"
+source = "git+https://github.com/iced-rs/iced.git?rev=2b275718d19a5cf306537e1d2417a1f5e9d94ef4#2b275718d19a5cf306537e1d2417a1f5e9d94ef4"
+dependencies = [
+ "iced_futures",
+ "iced_program",
+ "iced_renderer",
+ "iced_runtime",
+ "iced_selector",
+ "nom",
+ "png 0.18.1",
+ "sha2",
  "thiserror 2.0.18",
 ]
 
@@ -5020,6 +5045,17 @@ name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest",
+]
+
+[[package]]
+name = "sha2"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
