@@ -14,7 +14,6 @@ fn defaults_bind_and_all_sources_unset() {
     let c = cfg(&[]).unwrap();
     assert_eq!(c.bind.to_string(), DEFAULT_BIND);
     assert!(matches!(c.prom, Endpoint::Unset("DASH_PROM_URL")));
-    assert!(matches!(c.alertmanager, Endpoint::Unset(_)));
     assert!(matches!(c.rektslug, Endpoint::Unset(_)));
 }
 
@@ -43,7 +42,7 @@ fn credentials_never_reach_the_source_label() {
 fn invalid_url_is_reported_not_fatal() {
     let c = cfg(&[
         ("DASH_PROM_URL", "not a url"),
-        ("DASH_ALERTMANAGER_URL", "ftp://x"),
+        ("DASH_REKTSLUG_URL", "ftp://x"),
     ])
     .unwrap();
     assert!(
@@ -52,10 +51,5 @@ fn invalid_url_is_reported_not_fatal() {
             .unwrap()
             .starts_with("DASH_PROM_URL invalid")
     );
-    assert!(
-        c.alertmanager
-            .unavailable_reason()
-            .unwrap()
-            .contains("http(s)")
-    );
+    assert!(c.rektslug.unavailable_reason().unwrap().contains("http(s)"));
 }

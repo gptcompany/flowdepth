@@ -20,15 +20,20 @@ pub fn fixture(rel: &str) -> String {
     std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("read {}: {e}", p.display()))
 }
 
-pub fn config(prom: Option<&str>, am: Option<&str>, rekt: Option<&str>) -> Config {
-    let env: HashMap<&str, String> = [
-        ("DASH_PROM_URL", prom),
-        ("DASH_ALERTMANAGER_URL", am),
-        ("DASH_REKTSLUG_URL", rekt),
-    ]
-    .into_iter()
-    .filter_map(|(k, v)| v.map(|v| (k, v.to_owned())))
-    .collect();
+/// The v1 contract example is a single file at the workspace root: the frontend embeds the same
+/// bytes (`data::sheet`), so dash-core must not keep a copy of its own.
+pub fn contract_fixture() -> String {
+    let p: PathBuf = [env!("CARGO_MANIFEST_DIR"), "..", "fixtures", "sheets.json"]
+        .iter()
+        .collect();
+    std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("read {}: {e}", p.display()))
+}
+
+pub fn config(prom: Option<&str>, rekt: Option<&str>) -> Config {
+    let env: HashMap<&str, String> = [("DASH_PROM_URL", prom), ("DASH_REKTSLUG_URL", rekt)]
+        .into_iter()
+        .filter_map(|(k, v)| v.map(|v| (k, v.to_owned())))
+        .collect();
     Config::from_lookup(|k| env.get(k).cloned()).unwrap()
 }
 
@@ -49,7 +54,7 @@ pub async fn mount_prom(server: &MockServer, up: String, hl: String) {
 
 pub async fn mount_alerts(server: &MockServer, body: String) {
     Mock::given(method("GET"))
-        .and(path("/api/v2/alerts"))
+        .and(path("/api/v1/alerts"))
         .respond_with(json(body))
         .mount(server)
         .await;
@@ -73,14 +78,14 @@ pub async fn mount_all_status(server: &MockServer, status: u16) {
         .await;
 }
 
-pub async fn mount_recorded(prom: &MockServer, am: &MockServer, rekt: &MockServer) {
+pub async fn mount_recorded(prom: &MockServer, rekt: &MockServer) {
     mount_prom(
         prom,
         fixture("recorded/prom_up.json"),
         fixture("recorded/prom_hl.json"),
     )
     .await;
-    mount_alerts(am, fixture("recorded/alertmanager_alerts.json")).await;
+    mount_alerts(prom, fixture("recorded/prometheus_alerts.json")).await;
     mount_rektslug(
         rekt,
         fixture("recorded/rektslug_health.json"),

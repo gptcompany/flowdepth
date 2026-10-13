@@ -1,7 +1,7 @@
 # dash-core
 
-Headless Rust service behind the flowdepth dashboard. `GET /v1/sheets` aggregates three read-only
-sources into one JSON document (contract v1, canonical example: `fixtures/sheets.json`).
+Headless Rust service behind the flowdepth dashboard. `GET /v1/sheets` aggregates two read-only
+sources into one JSON document (contract v1, canonical example: `fixtures/sheets.json` at the workspace root, the single copy shared with the frontend).
 A failing or unconfigured source yields `missing` cells carrying the reason; the response is
 never a 500.
 
@@ -9,7 +9,6 @@ never a 500.
 
 ```sh
 DASH_PROM_URL=http://127.0.0.1:9090 \
-DASH_ALERTMANAGER_URL=http://127.0.0.1:9093 \
 DASH_REKTSLUG_URL=http://127.0.0.1:8002 \
 cargo run -p dash-core
 curl -s http://127.0.0.1:8790/v1/sheets | jq .
@@ -18,8 +17,7 @@ curl -s http://127.0.0.1:8790/v1/sheets | jq .
 | env | default | meaning |
 |---|---|---|
 | `DASH_BIND` | `127.0.0.1:8790` | listen address |
-| `DASH_PROM_URL` | unset → `infra` cells `missing` | Prometheus base URL |
-| `DASH_ALERTMANAGER_URL` | unset → `alerts` cells `missing` | Alertmanager base URL |
+| `DASH_PROM_URL` | unset → `infra` and `alerts` cells `missing` | Prometheus base URL (read-only: `/api/v1/query`, `/api/v1/alerts`) |
 | `DASH_REKTSLUG_URL` | unset → `rektslug` cells `missing` | rektslug base URL |
 
 `RUST_LOG` filters logs (default `info`). Logs are JSON, one line per fetch with
@@ -34,13 +32,33 @@ the same severity.
 | sheet | requests (GET only) | rows |
 |---|---|---|
 | `infra` | `/api/v1/query?query=up`, `/api/v1/query?query={__name__=~"hl_.*"}` | one per `up` series (`job/instance`), one per `hl_*` series |
-| `alerts` | `/api/v2/alerts?active=true&silenced=false&inhibited=false` | one per active alert |
+| `alerts` | Prometheus `/api/v1/alerts` | one per `pending` or `firing` alert, keyed by its label set |
 | `rektslug` | `/health`, `/ops/summary` | `/health`, the ops envelope, and one per `<table>:<symbol>` stream in `details.data_freshness` with its `data_as_of` |
 
 Severity: `ok|warn|crit` from the datum; `stale` when its timestamp is older than the source
-threshold (Prometheus 120 s, Alertmanager `updatedAt` 300 s, rektslug the stream's own `sla_secs`,
-fallback 600 s); `missing` when the source or datum is absent. Alertmanager `severity` label:
-`critical|crit|page|error|fatal` → `crit`, `info|none|ok` → `ok`, anything else or absent → `warn`.
+threshold (Prometheus samples 120 s, rektslug the stream's own `sla_secs`, fallback 600 s);
+`missing` when the source or datum is absent. Alerts have no staleness rule: Prometheus exposes
+no per-alert update time, and the cell `ts`/`age_s` is `activeAt`, so a long-firing alert reads
+as firing, never `stale`.
+
+The `value` cell of an alert is its `summary` (else `description`) annotation followed by the
+expression value as `(value=<v>)`; with no annotation it is `value=<v>`, and the alert name only
+when Prometheus sent neither.
+
+Alert mapping (`state` + `severity` label, official `GET /api/v1/alerts` schema):
+
+| state | `severity` label | status | severity |
+|---|---|---|---|
+| `firing` | `critical\|crit\|page\|error\|fatal` | the label | `crit` |
+| `firing` | `warning` or any other value | the label | `warn` |
+| `firing` | `info\|none\|ok` | the label | `ok` |
+| `firing` | absent | `unknown` | `warn` |
+| `pending` | any | `pending` | `warn` |
+
+`pending` means the rule's `for:` duration has not elapsed: shown as `pending`/`warn` even when
+labelled critical; it becomes `crit` once Prometheus reports it `firing`. An unreachable
+Prometheus, a non-2xx status, `"status":"error"` or a malformed body yields one `missing` row
+(`alerts:prometheus`) with the reason; the response is still 200.
 
 ## Where the real endpoints are
 
@@ -50,13 +68,21 @@ Found in `gptcompany/monitoring-stack` (README, `prometheus/prometheus.yml`) and
 | source | URL on the workstation | evidence |
 |---|---|---|
 | Prometheus | `http://127.0.0.1:9090` | monitoring-stack README: `prometheus (:9090)`, `curl localhost:9090/api/v1/targets` |
-| Alertmanager | `http://127.0.0.1:9093` | README `alertmanager (:9093)`; `prometheus.yml` alerting target `localhost:9093` |
 | rektslug | `http://127.0.0.1:8002` | compose `${HEATMAP_PORT:-8002}:8002`, healthcheck `http://127.0.0.1:8002/health` |
 
+Alerts come from Prometheus itself: Alertmanager is not exposed (monitoring-stack ms#255).
 These are the workstation-local bindings; when dash-core runs on another host, reach them through
 the existing tunnel/VPN, not by exposing the ports. The `hl_*` series (e.g. `hl_blocks_behind`) come
 from the Hyperliquid exporters scraped by the `hyperliquid-exporter` and `vps-hyperliquid-exporter`
 jobs.
+
+## Real run
+
+`docs/e2e/alerts-real-2026-10-14.json`: `GET /v1/sheets` against the live Prometheus
+(monitoring-stack#257, read-only NodePort over WireGuard; URL only via `DASH_PROM_URL`).
+196 alerts (175 firing/warning, 17 firing/critical, 3 firing/none|info, 1 pending/warning) map to
+196 rows, each checked against the raw `/api/v1/alerts` reply. The Prometheus URL is replaced by
+`http://<prometheus>/`.
 
 ## Known gaps (TODO)
 

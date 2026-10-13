@@ -4,7 +4,9 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{config, fixture, mount_all_status, mount_prom, mount_recorded, now};
+use common::{
+    config, contract_fixture, fixture, mount_all_status, mount_prom, mount_recorded, now,
+};
 use dash_core::model::{COLUMNS, Severity, Sheet, SheetsResponse};
 use dash_core::{Collector, router};
 use wiremock::MockServer;
@@ -36,14 +38,14 @@ fn assert_all_missing(s: &Sheet) {
 
 #[tokio::test]
 async fn unset_env_yields_missing_cells_naming_the_variable() {
-    let r = collect(config(None, None, None)).await;
+    let r = collect(config(None, None)).await;
     assert_eq!(
         r.sheets.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
         ["infra", "alerts", "rektslug"]
     );
     for (id, var) in [
         ("infra", "DASH_PROM_URL"),
-        ("alerts", "DASH_ALERTMANAGER_URL"),
+        ("alerts", "DASH_PROM_URL"),
         ("rektslug", "DASH_REKTSLUG_URL"),
     ] {
         let s = sheet(&r, id);
@@ -55,20 +57,11 @@ async fn unset_env_yields_missing_cells_naming_the_variable() {
 
 #[tokio::test]
 async fn source_returning_5xx_yields_missing_with_reason() {
-    let (prom, am, rekt) = (
-        MockServer::start().await,
-        MockServer::start().await,
-        MockServer::start().await,
-    );
-    for s in [&prom, &am, &rekt] {
+    let (prom, rekt) = (MockServer::start().await, MockServer::start().await);
+    for s in [&prom, &rekt] {
         mount_all_status(s, 503).await;
     }
-    let r = collect(config(
-        Some(&prom.uri()),
-        Some(&am.uri()),
-        Some(&rekt.uri()),
-    ))
-    .await;
+    let r = collect(config(Some(&prom.uri()), Some(&rekt.uri()))).await;
     for id in ["infra", "alerts", "rektslug"] {
         let s = sheet(&r, id);
         assert_all_missing(s);
@@ -87,7 +80,7 @@ async fn unreachable_source_yields_missing_with_reason() {
         l.local_addr().unwrap().port()
     };
     let url = format!("http://127.0.0.1:{port}");
-    let r = collect(config(Some(&url), Some(&url), Some(&url))).await;
+    let r = collect(config(Some(&url), Some(&url))).await;
     for id in ["infra", "alerts", "rektslug"] {
         let s = sheet(&r, id);
         assert_all_missing(s);
@@ -100,30 +93,98 @@ async fn unreachable_source_yields_missing_with_reason() {
 
 #[tokio::test]
 async fn malformed_body_yields_missing_not_error() {
-    let am = MockServer::start().await;
-    common::mount_alerts(&am, "<html>bad gateway</html>".to_owned()).await;
-    let r = collect(config(None, Some(&am.uri()), None)).await;
+    let prom = MockServer::start().await;
+    common::mount_alerts(&prom, "<html>bad gateway</html>".to_owned()).await;
+    let r = collect(config(Some(&prom.uri()), None)).await;
     let s = sheet(&r, "alerts");
     assert_all_missing(s);
     assert!(s.rows[0].cells[2].value.starts_with("invalid response"));
 }
 
 #[tokio::test]
-async fn one_source_down_does_not_affect_the_others() {
-    let (prom, am, rekt) = (
-        MockServer::start().await,
-        MockServer::start().await,
-        MockServer::start().await,
+async fn alerts_reply_with_wrong_shape_or_error_status_is_missing() {
+    for (body, reason) in [
+        (
+            r#"{"status":"success","data":{"alerts":"nope"}}"#,
+            "invalid response",
+        ),
+        (r#"{"status":"success"}"#, "success reply without data"),
+        (
+            r#"{"status":"error","errorType":"unavailable","error":"rules not loaded"}"#,
+            "rules not loaded",
+        ),
+    ] {
+        let prom = MockServer::start().await;
+        common::mount_alerts(&prom, body.to_owned()).await;
+        let r = collect(config(Some(&prom.uri()), None)).await;
+        let s = sheet(&r, "alerts");
+        assert_all_missing(s);
+        assert!(s.rows[0].cells[2].value.starts_with(reason), "{s:#?}");
+    }
+}
+
+#[tokio::test]
+async fn alerts_are_served_from_prometheus_over_http() {
+    let prom = MockServer::start().await;
+    common::mount_alerts(&prom, fixture("recorded/prometheus_alerts.json")).await;
+    let r = collect(config(Some(&prom.uri()), None)).await;
+    let s = sheet(&r, "alerts");
+    assert_eq!(s.rows.len(), 4);
+    let sev = |id: &str| {
+        s.rows
+            .iter()
+            .find(|row| row.id == id)
+            .unwrap_or_else(|| panic!("row {id} missing in {s:#?}"))
+            .cells[0]
+            .severity
+    };
+    assert_eq!(
+        sev("alert:alertname=HLNodeBehind,instance=localhost:9101,severity=critical"),
+        Severity::Crit
     );
-    mount_recorded(&prom, &am, &rekt).await;
-    drop(am);
-    let r = collect(config(
-        Some(&prom.uri()),
-        Some("http://127.0.0.1:1"),
-        Some(&rekt.uri()),
-    ))
+    assert_eq!(
+        sev("alert:alertname=TextfileStale,severity=critical"),
+        Severity::Warn
+    );
+    // Reads only /api/v1/alerts, never an Alertmanager path.
+    let paths: Vec<String> = prom
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .map(|req| req.url.path().to_owned())
+        .collect();
+    assert!(paths.iter().any(|p| p == "/api/v1/alerts"), "{paths:?}");
+    assert!(paths.iter().all(|p| p.starts_with("/api/v1/")), "{paths:?}");
+}
+
+#[tokio::test]
+async fn alerts_failure_keeps_infra_rows() {
+    let prom = MockServer::start().await;
+    mount_prom(
+        &prom,
+        fixture("recorded/prom_up.json"),
+        fixture("recorded/prom_hl.json"),
+    )
     .await;
+    // /api/v1/alerts is unmocked → wiremock 404.
+    let r = collect(config(Some(&prom.uri()), None)).await;
     assert_all_missing(sheet(&r, "alerts"));
+    assert_eq!(sheet(&r, "alerts").rows[0].cells[2].value, "http 404");
+    assert!(
+        sheet(&r, "infra")
+            .rows
+            .iter()
+            .any(|row| row.cells[0].severity == Severity::Ok)
+    );
+}
+
+#[tokio::test]
+async fn one_source_down_does_not_affect_the_others() {
+    let (prom, rekt) = (MockServer::start().await, MockServer::start().await);
+    mount_recorded(&prom, &rekt).await;
+    let r = collect(config(Some(&prom.uri()), Some("http://127.0.0.1:1"))).await;
+    assert_all_missing(sheet(&r, "rektslug"));
     assert!(
         sheet(&r, "infra")
             .rows
@@ -131,10 +192,10 @@ async fn one_source_down_does_not_affect_the_others() {
             .any(|row| row.cells[0].severity == Severity::Ok)
     );
     assert!(
-        sheet(&r, "rektslug")
+        sheet(&r, "alerts")
             .rows
             .iter()
-            .any(|row| row.cells[0].severity == Severity::Ok)
+            .any(|row| row.cells[0].severity == Severity::Crit)
     );
 }
 
@@ -149,7 +210,7 @@ async fn hl_query_failure_keeps_up_rows() {
         )
         .mount(&prom)
         .await;
-    let r = collect(config(Some(&prom.uri()), None, None)).await;
+    let r = collect(config(Some(&prom.uri()), None)).await;
     let infra = sheet(&r, "infra");
     assert_eq!(infra.rows.len(), 4);
     let hl = infra.rows.iter().find(|row| row.id == "infra:hl").unwrap();
@@ -168,7 +229,7 @@ async fn stale_sample_is_flagged_stale() {
         r#"{"status":"success","data":{"resultType":"vector","result":[]}}"#.to_owned(),
     )
     .await;
-    let r = collect(config(Some(&prom.uri()), None, None)).await;
+    let r = collect(config(Some(&prom.uri()), None)).await;
     let row = &sheet(&r, "infra").rows[0];
     assert!(row.cells.iter().all(|c| c.severity == Severity::Stale));
     assert_eq!(row.cells[4].value, "800");
@@ -176,22 +237,13 @@ async fn stale_sample_is_flagged_stale() {
 
 #[tokio::test]
 async fn serialized_contract_equals_fixture() {
-    let (prom, am, rekt) = (
-        MockServer::start().await,
-        MockServer::start().await,
-        MockServer::start().await,
-    );
-    mount_recorded(&prom, &am, &rekt).await;
-    let r = collect(config(
-        Some(&prom.uri()),
-        Some(&am.uri()),
-        Some(&rekt.uri()),
-    ))
-    .await;
+    let (prom, rekt) = (MockServer::start().await, MockServer::start().await);
+    mount_recorded(&prom, &rekt).await;
+    let r = collect(config(Some(&prom.uri()), Some(&rekt.uri()))).await;
 
     // Mock ports are random; map them to the real default ports so the fixture is stable.
     let mut text = serde_json::to_string(&r).unwrap();
-    for (mock, real) in [(&prom, "9090"), (&am, "9093"), (&rekt, "8002")] {
+    for (mock, real) in [(&prom, "9090"), (&rekt, "8002")] {
         text = text.replace(
             &format!("{}/", mock.uri()),
             &format!("http://127.0.0.1:{real}/"),
@@ -200,7 +252,7 @@ async fn serialized_contract_equals_fixture() {
     // Typed round trip keeps contract field order in the printed diagnostic.
     let typed: SheetsResponse = serde_json::from_str(&text).unwrap();
     let actual = serde_json::to_value(&typed).unwrap();
-    let expected: serde_json::Value = serde_json::from_str(&fixture("sheets.json")).unwrap();
+    let expected: serde_json::Value = serde_json::from_str(&contract_fixture()).unwrap();
     assert_eq!(
         actual,
         expected,
@@ -211,7 +263,7 @@ async fn serialized_contract_equals_fixture() {
 
 #[test]
 fn fixture_is_a_valid_contract_document() {
-    let raw = fixture("sheets.json");
+    let raw = contract_fixture();
     let parsed: SheetsResponse = serde_json::from_str(&raw).unwrap();
     // Typed round trip must not add, drop or rename a field.
     assert_eq!(
@@ -238,11 +290,21 @@ fn fixture_is_a_valid_contract_document() {
     );
 }
 
+#[test]
+fn contract_fixture_has_a_single_source() {
+    let own = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/sheets.json");
+    assert!(
+        !own.exists(),
+        "{} duplicates the workspace-root fixtures/sheets.json: keep one source",
+        own.display()
+    );
+}
+
 #[tokio::test]
 async fn http_endpoint_serves_200_even_when_every_source_is_down() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    let collector = Arc::new(Collector::new(config(None, None, None)).unwrap());
+    let collector = Arc::new(Collector::new(config(None, None)).unwrap());
     tokio::spawn(async move { axum::serve(listener, router(collector)).await.unwrap() });
 
     let resp = reqwest::get(format!("http://{addr}/v1/sheets"))

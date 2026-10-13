@@ -26,7 +26,6 @@ async fn run() -> Result<(), String> {
     tracing::info!(
         bind = %config.bind,
         prometheus = config.prom.label(),
-        alertmanager = config.alertmanager.label(),
         rektslug = config.rektslug.label(),
         "starting"
     );

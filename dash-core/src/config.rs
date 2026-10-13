@@ -8,7 +8,6 @@ pub const DEFAULT_BIND: &str = "127.0.0.1:8790";
 /// Source-specific staleness thresholds (seconds). Rektslug supplies its own per-stream SLA;
 /// the constant is the fallback when the payload carries none.
 pub const PROM_STALE_S: i64 = 120;
-pub const ALERT_STALE_S: i64 = 300;
 pub const REKTSLUG_STALE_S: i64 = 600;
 
 /// State of one optional source URL.
@@ -84,7 +83,6 @@ pub enum ConfigError {
 pub struct Config {
     pub bind: SocketAddr,
     pub prom: Endpoint,
-    pub alertmanager: Endpoint,
     pub rektslug: Endpoint,
 }
 
@@ -107,7 +105,6 @@ impl Config {
         Ok(Self {
             bind,
             prom: Endpoint::parse("DASH_PROM_URL", get("DASH_PROM_URL")),
-            alertmanager: Endpoint::parse("DASH_ALERTMANAGER_URL", get("DASH_ALERTMANAGER_URL")),
             rektslug: Endpoint::parse("DASH_REKTSLUG_URL", get("DASH_REKTSLUG_URL")),
         })
     }

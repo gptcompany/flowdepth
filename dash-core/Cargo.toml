@@ -5,7 +5,7 @@ edition.workspace = true
 repository.workspace = true
 homepage.workspace = true
 license = "GPL-3.0-or-later"
-description = "Headless sheets API for the flowdepth dashboard: Prometheus, Alertmanager and rektslug status as JSON"
+description = "Headless sheets API for the flowdepth dashboard: Prometheus and rektslug status as JSON"
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }

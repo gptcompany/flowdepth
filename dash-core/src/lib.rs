@@ -1,4 +1,4 @@
-//! dash-core: headless `GET /v1/sheets` over Prometheus, Alertmanager and rektslug.
+//! dash-core: headless `GET /v1/sheets` over Prometheus and rektslug.
 //!
 //! Read-only against every source. A failing source degrades to `missing` cells, never to a 500.
 
@@ -35,7 +35,7 @@ impl Collector {
         let started = std::time::Instant::now();
         let (infra, alerts, rektslug) = tokio::join!(
             sources::prom::sheet(&self.fetcher, &self.config.prom, now),
-            sources::alerts::sheet(&self.fetcher, &self.config.alertmanager, now),
+            sources::alerts::sheet(&self.fetcher, &self.config.prom, now),
             sources::rektslug::sheet(&self.fetcher, &self.config.rektslug, now),
         );
         let sheets = vec![infra, alerts, rektslug];

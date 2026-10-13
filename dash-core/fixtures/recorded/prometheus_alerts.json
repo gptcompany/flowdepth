@@ -1,0 +1,35 @@
+{
+  "status": "success",
+  "data": {
+    "alerts": [
+      {
+        "labels": {"alertname": "my-alert"},
+        "annotations": {},
+        "state": "firing",
+        "activeAt": "2018-07-04T20:27:12.60602144+02:00",
+        "value": "1e+00"
+      },
+      {
+        "labels": {"alertname": "HLNodeBehind", "instance": "localhost:9101", "severity": "critical"},
+        "annotations": {"summary": "Hyperliquid node 1200 blocks behind"},
+        "state": "firing",
+        "activeAt": "2026-10-13T11:30:00Z",
+        "value": "1.2e+03"
+      },
+      {
+        "labels": {"alertname": "DiskFillingUp", "instance": "azure-vps", "severity": "warning"},
+        "annotations": {"description": "Disk 91% full"},
+        "state": "firing",
+        "activeAt": "2026-10-13T13:45:00+02:00",
+        "value": "9.1e+01"
+      },
+      {
+        "labels": {"alertname": "TextfileStale", "severity": "critical"},
+        "annotations": {"summary": "Exporter textfile not updating"},
+        "state": "pending",
+        "activeAt": "2026-10-13T11:58:30Z",
+        "value": "1e+00"
+      }
+    ]
+  }
+}
