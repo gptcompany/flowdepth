@@ -1,0 +1,5 @@
+{"status":"success","data":{"resultType":"vector","result":[
+{"metric":{"__name__":"up","instance":"localhost:9100","job":"workstation-node"},"value":[1791892795.123,"1"]},
+{"metric":{"__name__":"up","instance":"localhost:9101","job":"hyperliquid-exporter"},"value":[1791892795.123,"0"]},
+{"metric":{"__name__":"up","instance":"localhost:8777","job":"pepers"},"value":[1791889200,"1"]}
+]}}

@@ -1,0 +1,23 @@
+[package]
+name = "dash-core"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+homepage.workspace = true
+license = "GPL-3.0-or-later"
+description = "Headless sheets API for the flowdepth dashboard: Prometheus, Alertmanager and rektslug status as JSON"
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+tokio = { version = "1.52", default-features = false, features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+url.workspace = true
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["env-filter", "fmt", "json", "std"] }
+
+[dev-dependencies]
+wiremock = "0.6"
