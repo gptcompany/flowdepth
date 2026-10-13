@@ -1,0 +1,6 @@
+{"provider_id":"rektslug","schema_version":"1.0.0","generated_at":"2026-10-13T11:59:58Z","status":"DEGRADED","freshness_sla_secs":60,"last_error":null,"details":{"data_freshness_status":"DEGRADED","data_freshness":{
+"klines:BTCUSDT":{"data_as_of":"2026-10-13T11:59:00Z","age_secs":60,"sla_secs":300,"stale":false,"reason":null},
+"klines:ETHUSDT":{"data_as_of":"2026-10-13T11:59:00Z","age_secs":60,"sla_secs":300,"stale":false,"reason":null},
+"open_interest:BTCUSDT":{"data_as_of":"2026-10-13T11:00:00Z","age_secs":3600,"sla_secs":900,"stale":true,"reason":"older than sla"},
+"funding_rates:BTCUSDT":{"data_as_of":null,"age_secs":null,"sla_secs":3600,"stale":true,"reason":"no rows for symbol"}
+}}}
