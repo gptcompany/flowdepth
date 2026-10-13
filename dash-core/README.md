@@ -1,7 +1,7 @@
 # dash-core
 
 Headless Rust service behind the flowdepth dashboard. `GET /v1/sheets` aggregates two read-only
-sources into one JSON document (contract v1, canonical example: `fixtures/sheets.json`).
+sources into one JSON document (contract v1, canonical example: `fixtures/sheets.json` at the workspace root, the single copy shared with the frontend).
 A failing or unconfigured source yields `missing` cells carrying the reason; the response is
 never a 500.
 
@@ -41,6 +41,10 @@ threshold (Prometheus samples 120 s, rektslug the stream's own `sla_secs`, fallb
 no per-alert update time, and the cell `ts`/`age_s` is `activeAt`, so a long-firing alert reads
 as firing, never `stale`.
 
+The `value` cell of an alert is its `summary` (else `description`) annotation followed by the
+expression value as `(value=<v>)`; with no annotation it is `value=<v>`, and the alert name only
+when Prometheus sent neither.
+
 Alert mapping (`state` + `severity` label, official `GET /api/v1/alerts` schema):
 
 | state | `severity` label | status | severity |
@@ -71,6 +75,14 @@ These are the workstation-local bindings; when dash-core runs on another host, r
 the existing tunnel/VPN, not by exposing the ports. The `hl_*` series (e.g. `hl_blocks_behind`) come
 from the Hyperliquid exporters scraped by the `hyperliquid-exporter` and `vps-hyperliquid-exporter`
 jobs.
+
+## Real run
+
+`docs/e2e/alerts-real-2026-10-14.json`: `GET /v1/sheets` against the live Prometheus
+(monitoring-stack#257, read-only NodePort over WireGuard; URL only via `DASH_PROM_URL`).
+196 alerts (175 firing/warning, 17 firing/critical, 3 firing/none|info, 1 pending/warning) map to
+196 rows, each checked against the raw `/api/v1/alerts` reply. The Prometheus URL is replaced by
+`http://<prometheus>/`.
 
 ## Known gaps (TODO)
 

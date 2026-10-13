@@ -20,6 +20,15 @@ pub fn fixture(rel: &str) -> String {
     std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("read {}: {e}", p.display()))
 }
 
+/// The v1 contract example is a single file at the workspace root: the frontend embeds the same
+/// bytes (`data::sheet`), so dash-core must not keep a copy of its own.
+pub fn contract_fixture() -> String {
+    let p: PathBuf = [env!("CARGO_MANIFEST_DIR"), "..", "fixtures", "sheets.json"]
+        .iter()
+        .collect();
+    std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("read {}: {e}", p.display()))
+}
+
 pub fn config(prom: Option<&str>, rekt: Option<&str>) -> Config {
     let env: HashMap<&str, String> = [("DASH_PROM_URL", prom), ("DASH_REKTSLUG_URL", rekt)]
         .into_iter()

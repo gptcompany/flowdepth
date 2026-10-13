@@ -40,6 +40,9 @@ struct PromAlert {
     /// `pending` | `firing`.
     state: String,
     active_at: DateTime<Utc>,
+    /// Value of the alert expression at the last evaluation, a Go-formatted float string.
+    #[serde(default)]
+    value: Option<String>,
 }
 
 /// `severity` label of a firing alert → cell severity. An unknown or absent label is `warn`:
@@ -81,12 +84,17 @@ pub fn rows(reply: AlertsReply, source: &str, now: DateTime<Utc>) -> Result<Vec<
                 ),
                 other => (other.to_owned(), Severity::Warn),
             };
-            let value = a
+            let text = a
                 .annotations
                 .get("summary")
-                .or_else(|| a.annotations.get("description"))
-                .cloned()
-                .unwrap_or_else(|| name.to_owned());
+                .or_else(|| a.annotations.get("description"));
+            // The expression value is the only datum an unannotated alert carries.
+            let value = match (text, a.value.as_deref().filter(|v| !v.is_empty())) {
+                (Some(t), Some(v)) => format!("{t} (value={v})"),
+                (Some(t), None) => t.clone(),
+                (None, Some(v)) => format!("value={v}"),
+                (None, None) => name.to_owned(),
+            };
             // The label set is the alert's identity in Prometheus.
             let id = a
                 .labels

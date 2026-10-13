@@ -86,7 +86,7 @@ fn alerts_map_severity_label_and_pending_state() {
         [
             "HLNodeBehind (localhost:9101)",
             "critical",
-            "Hyperliquid node 1200 blocks behind",
+            "Hyperliquid node 1200 blocks behind (value=1.2e+03)",
             "http://prom/",
             "1800"
         ]
@@ -98,13 +98,14 @@ fn alerts_map_severity_label_and_pending_state() {
         "alert:alertname=DiskFillingUp,instance=azure-vps,severity=warning",
     );
     assert_eq!(warn.cells[0].severity, Severity::Warn);
-    assert_eq!(values(warn)[2], "Disk 91% full");
+    assert_eq!(values(warn)[2], "Disk 91% full (value=9.1e+01)");
     // 13:45+02:00 is 11:45Z, 15 min before `now`.
     assert_eq!(values(warn)[4], "900");
 
     // The official-doc sample: firing without a severity label is warn, not healthy.
     let doc = by_id(&rows, "alert:alertname=my-alert");
-    assert_eq!(values(doc)[..3], ["my-alert", "unknown", "my-alert"]);
+    // No annotations: the expression value of the official example is the only datum.
+    assert_eq!(values(doc)[..3], ["my-alert", "unknown", "value=1e+00"]);
     assert_eq!(doc.cells[0].severity, Severity::Warn);
     // Active since 2018: long-firing is never `stale`.
     assert_ne!(doc.cells[0].severity, Severity::Stale);
@@ -112,7 +113,23 @@ fn alerts_map_severity_label_and_pending_state() {
     // pending + severity=critical: not firing yet, so pending/warn.
     let pending = by_id(&rows, "alert:alertname=TextfileStale,severity=critical");
     assert_eq!(values(pending)[1], "pending");
+    assert_eq!(
+        values(pending)[2],
+        "Exporter textfile not updating (value=1e+00)"
+    );
     assert_eq!(pending.cells[0].severity, Severity::Warn);
+}
+
+#[test]
+fn alert_without_annotations_or_value_falls_back_to_its_name() {
+    let reply: AlertsReply = serde_json::from_str(
+        r#"{"status":"success","data":{"alerts":[
+            {"labels":{"alertname":"Bare"},"annotations":{},"state":"firing",
+             "activeAt":"2026-10-13T11:59:00Z"}]}}"#,
+    )
+    .unwrap();
+    let rows = alerts::rows(reply, "s", now()).unwrap();
+    assert_eq!(values(&rows[0])[2], "Bare");
 }
 
 #[test]

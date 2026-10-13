@@ -166,142 +166,142 @@
       ],
       "rows": [
         {
-          "id": "alert:a1b2c3d4e5f60001",
-          "cells": [
-            {
-              "value": "HLNodeBehind (localhost:9101)",
-              "severity": "crit",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:30Z"
-            },
-            {
-              "value": "critical",
-              "severity": "crit",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:30Z"
-            },
-            {
-              "value": "Hyperliquid node 1200 blocks behind",
-              "severity": "crit",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:30Z"
-            },
-            {
-              "value": "http://127.0.0.1:9093/",
-              "severity": "crit",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:30Z"
-            },
-            {
-              "value": "1800",
-              "severity": "crit",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:30Z"
-            }
-          ]
-        },
-        {
-          "id": "alert:a1b2c3d4e5f60002",
+          "id": "alert:alertname=DiskFillingUp,instance=azure-vps,severity=warning",
           "cells": [
             {
               "value": "DiskFillingUp (azure-vps)",
               "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:45Z"
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:45:00Z"
             },
             {
               "value": "warning",
               "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:45Z"
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:45:00Z"
             },
             {
-              "value": "Disk 91% full",
+              "value": "Disk 91% full (value=9.1e+01)",
               "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:45Z"
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:45:00Z"
             },
             {
-              "value": "http://127.0.0.1:9093/",
+              "value": "http://127.0.0.1:9090/",
               "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:45Z"
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:45:00Z"
             },
             {
               "value": "900",
               "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:45Z"
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:45:00Z"
             }
           ]
         },
         {
-          "id": "alert:a1b2c3d4e5f60003",
+          "id": "alert:alertname=HLNodeBehind,instance=localhost:9101,severity=critical",
           "cells": [
             {
-              "value": "NoSeverityLabel",
-              "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:50Z"
-            },
-            {
-              "value": "unknown",
-              "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:50Z"
-            },
-            {
-              "value": "NoSeverityLabel",
-              "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:50Z"
-            },
-            {
-              "value": "http://127.0.0.1:9093/",
-              "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:50Z"
-            },
-            {
-              "value": "120",
-              "severity": "warn",
-              "source": "http://127.0.0.1:9093/",
-              "ts": "2026-10-13T11:59:50Z"
-            }
-          ]
-        },
-        {
-          "id": "alert:a1b2c3d4e5f60004",
-          "cells": [
-            {
-              "value": "TextfileStale",
-              "severity": "stale",
-              "source": "http://127.0.0.1:9093/",
+              "value": "HLNodeBehind (localhost:9101)",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
               "ts": "2026-10-13T11:30:00Z"
             },
             {
               "value": "critical",
-              "severity": "stale",
-              "source": "http://127.0.0.1:9093/",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
               "ts": "2026-10-13T11:30:00Z"
             },
             {
-              "value": "Exporter textfile not updating",
-              "severity": "stale",
-              "source": "http://127.0.0.1:9093/",
+              "value": "Hyperliquid node 1200 blocks behind (value=1.2e+03)",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
               "ts": "2026-10-13T11:30:00Z"
             },
             {
-              "value": "http://127.0.0.1:9093/",
-              "severity": "stale",
-              "source": "http://127.0.0.1:9093/",
+              "value": "http://127.0.0.1:9090/",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
               "ts": "2026-10-13T11:30:00Z"
             },
             {
-              "value": "7200",
-              "severity": "stale",
-              "source": "http://127.0.0.1:9093/",
+              "value": "1800",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
               "ts": "2026-10-13T11:30:00Z"
+            }
+          ]
+        },
+        {
+          "id": "alert:alertname=TextfileStale,severity=critical",
+          "cells": [
+            {
+              "value": "TextfileStale",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:58:30Z"
+            },
+            {
+              "value": "pending",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:58:30Z"
+            },
+            {
+              "value": "Exporter textfile not updating (value=1e+00)",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:58:30Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:58:30Z"
+            },
+            {
+              "value": "90",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:58:30Z"
+            }
+          ]
+        },
+        {
+          "id": "alert:alertname=my-alert",
+          "cells": [
+            {
+              "value": "my-alert",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2018-07-04T18:27:12.606021440Z"
+            },
+            {
+              "value": "unknown",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2018-07-04T18:27:12.606021440Z"
+            },
+            {
+              "value": "value=1e+00",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2018-07-04T18:27:12.606021440Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2018-07-04T18:27:12.606021440Z"
+            },
+            {
+              "value": "261163967",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2018-07-04T18:27:12.606021440Z"
             }
           ]
         }

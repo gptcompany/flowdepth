@@ -4,7 +4,9 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{config, fixture, mount_all_status, mount_prom, mount_recorded, now};
+use common::{
+    config, contract_fixture, fixture, mount_all_status, mount_prom, mount_recorded, now,
+};
 use dash_core::model::{COLUMNS, Severity, Sheet, SheetsResponse};
 use dash_core::{Collector, router};
 use wiremock::MockServer;
@@ -250,7 +252,7 @@ async fn serialized_contract_equals_fixture() {
     // Typed round trip keeps contract field order in the printed diagnostic.
     let typed: SheetsResponse = serde_json::from_str(&text).unwrap();
     let actual = serde_json::to_value(&typed).unwrap();
-    let expected: serde_json::Value = serde_json::from_str(&fixture("sheets.json")).unwrap();
+    let expected: serde_json::Value = serde_json::from_str(&contract_fixture()).unwrap();
     assert_eq!(
         actual,
         expected,
@@ -261,7 +263,7 @@ async fn serialized_contract_equals_fixture() {
 
 #[test]
 fn fixture_is_a_valid_contract_document() {
-    let raw = fixture("sheets.json");
+    let raw = contract_fixture();
     let parsed: SheetsResponse = serde_json::from_str(&raw).unwrap();
     // Typed round trip must not add, drop or rename a field.
     assert_eq!(
@@ -285,6 +287,16 @@ fn fixture_is_a_valid_contract_document() {
         seen.len(),
         5,
         "fixture should exercise every severity, saw {seen:?}"
+    );
+}
+
+#[test]
+fn contract_fixture_has_a_single_source() {
+    let own = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/sheets.json");
+    assert!(
+        !own.exists(),
+        "{} duplicates the workspace-root fixtures/sheets.json: keep one source",
+        own.display()
     );
 }
 
