@@ -95,6 +95,9 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_UI_HiDpi",
 ] }
 
+[dev-dependencies]
+iced_test = { git = "https://github.com/iced-rs/iced.git", rev = "2b275718d19a5cf306537e1d2417a1f5e9d94ef4" }
+
 [features]
 debug = ["iced/hot"]
 

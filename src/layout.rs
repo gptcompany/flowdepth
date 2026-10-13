@@ -190,7 +190,9 @@ pub fn retarget_dashboard(
                 let b_fallback = retarget_pane(b, market, btc_reference);
                 return a_fallback || b_fallback;
             }
-            data::Pane::Starter { .. } | data::Pane::NewsTracker { .. } => return false,
+            data::Pane::Starter { .. }
+            | data::Pane::NewsTracker { .. }
+            | data::Pane::Sheet { .. } => return false,
             data::Pane::GexChart {
                 underlying,
                 liquidity_reference,
@@ -463,6 +465,9 @@ impl From<&pane::State> for data::Pane {
             pane::Content::News(news) => data::Pane::NewsTracker {
                 config: news.config.clone(),
             },
+            pane::Content::Sheet(sheet) => data::Pane::Sheet {
+                config: sheet.config.clone(),
+            },
             pane::Content::Starter => data::Pane::Starter {
                 link_group: pane.link_group,
             },
@@ -572,6 +577,12 @@ pub fn configuration(pane: data::Pane) -> Configuration<pane::State> {
         },
         data::Pane::NewsTracker { config } => Configuration::Pane(pane::State::from_config(
             pane::Content::News(crate::chart::news::NewsTracker::new(config)),
+            vec![],
+            data::layout::pane::Settings::default(),
+            None,
+        )),
+        data::Pane::Sheet { config } => Configuration::Pane(pane::State::from_config(
+            pane::Content::Sheet(crate::widget::sheet::SheetPane::new(config)),
             vec![],
             data::layout::pane::Settings::default(),
             None,
@@ -1316,5 +1327,34 @@ mod news_tests {
         assert_eq!(news.config.min_impact, 75);
         assert!(restored.stream_pair().is_none());
         assert!(restored.tick(std::time::Instant::now()).is_none());
+    }
+}
+
+#[cfg(test)]
+mod sheet_tests {
+    use super::*;
+    use data::layout::pane::ContentKind;
+
+    #[test]
+    fn sheet_round_trips_selected_tab_without_market_streams() {
+        let mut state = pane::State::new();
+        assert!(matches!(
+            state.update(pane::Event::ContentSelected(ContentKind::Sheet)),
+            Some(pane::Effect::RefreshStreams)
+        ));
+        state.update(pane::Event::SheetInteraction(
+            crate::widget::sheet::Message::Select("alerts".into()),
+        ));
+        assert!(state.stream_pair().is_none());
+        let saved = serde_json::to_string(&data::Pane::from(&state)).unwrap();
+        let restored: data::Pane = serde_json::from_str(&saved).unwrap();
+        let Configuration::Pane(restored) = configuration(restored) else {
+            panic!("expected pane")
+        };
+        let pane::Content::Sheet(sheet) = &restored.content else {
+            panic!("expected Sheet")
+        };
+        assert_eq!(sheet.config.selected.as_deref(), Some("alerts"));
+        assert!(restored.stream_pair().is_none());
     }
 }

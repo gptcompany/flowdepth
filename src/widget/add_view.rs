@@ -14,6 +14,7 @@ fn label(kind: ContentKind) -> &'static str {
         ContentKind::GexChart => "GEX Options",
         ContentKind::ComparisonChart => "Comparison",
         ContentKind::NewsTracker => "News Tracker",
+        ContentKind::Sheet => "Sheet",
         ContentKind::Starter | ContentKind::HeatmapChart => unreachable!("not addable"),
     }
 }
@@ -28,6 +29,7 @@ fn description(kind: ContentKind) -> &'static str {
         ContentKind::GexChart => "BTC/ETH/SOL options exposure",
         ContentKind::ComparisonChart => "Compare markets",
         ContentKind::NewsTracker => "Crypto news & market impact",
+        ContentKind::Sheet => "dash-core status tables",
         ContentKind::Starter | ContentKind::HeatmapChart => unreachable!("not addable"),
     }
 }

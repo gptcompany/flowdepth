@@ -1,0 +1,569 @@
+{
+  "generated_at": "2026-10-14T08:00:05Z",
+  "sheets": [
+    {
+      "id": "infra",
+      "title": "Infra",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "infra/postgres",
+          "cells": [
+            {
+              "value": "postgres",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "up",
+              "severity": "ok",
+              "source": "http://127.0.0.1:5432/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "12 ms",
+              "severity": "ok",
+              "source": "http://127.0.0.1:5432/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:5432/health",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "3",
+              "severity": "ok",
+              "source": "http://127.0.0.1:5432/health",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "infra/redis",
+          "cells": [
+            {
+              "value": "redis",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "slow",
+              "severity": "warn",
+              "source": "http://127.0.0.1:6379/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "180 ms",
+              "severity": "warn",
+              "source": "http://127.0.0.1:6379/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:6379/health",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "4",
+              "severity": "warn",
+              "source": "http://127.0.0.1:6379/health",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "infra/questdb",
+          "cells": [
+            {
+              "value": "questdb",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "down",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9000/status",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "connection refused",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9000/status",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:9000/status",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "1",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9000/status",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "infra/ingest",
+          "cells": [
+            {
+              "value": "ingest",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "no data",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8791/status",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "last tick 14 min ago",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8791/status",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8791/status",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "840",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8791/status",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "infra/exporter",
+          "cells": [
+            {
+              "value": "exporter",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "unreachable",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9100/metrics",
+              "ts": null
+            },
+            {
+              "value": "timeout after 5s",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9100/metrics",
+              "ts": null
+            },
+            {
+              "value": "http://127.0.0.1:9100/metrics",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "0",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9100/metrics",
+              "ts": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alerts",
+      "title": "Alerts",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "alerts/funding",
+          "cells": [
+            {
+              "value": "funding-rate",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "normal",
+              "severity": "ok",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "0.01%",
+              "severity": "ok",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "dash-core/alerts",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "5",
+              "severity": "ok",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "alerts/liq",
+          "cells": [
+            {
+              "value": "liquidations",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "elevated",
+              "severity": "warn",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "$42M / 1h",
+              "severity": "warn",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "dash-core/alerts",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "7",
+              "severity": "warn",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "alerts/basis",
+          "cells": [
+            {
+              "value": "basis",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "inverted",
+              "severity": "crit",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "-1.8%",
+              "severity": "crit",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "dash-core/alerts",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "2",
+              "severity": "crit",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "alerts/oi",
+          "cells": [
+            {
+              "value": "open-interest",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "outdated",
+              "severity": "stale",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "$18.1B",
+              "severity": "stale",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "dash-core/alerts",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "1200",
+              "severity": "stale",
+              "source": "dash-core/alerts",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "alerts/skew",
+          "cells": [
+            {
+              "value": "skew",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "source error",
+              "severity": "missing",
+              "source": "https://www.deribit.com/api/v2",
+              "ts": null
+            },
+            {
+              "value": "deribit: HTTP 503",
+              "severity": "missing",
+              "source": "https://www.deribit.com/api/v2",
+              "ts": null
+            },
+            {
+              "value": "https://www.deribit.com/api/v2",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "0",
+              "severity": "missing",
+              "source": "https://www.deribit.com/api/v2",
+              "ts": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rektslug",
+      "title": "Rektslug",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "rektslug/api",
+          "cells": [
+            {
+              "value": "rektslug-api",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "up",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8000/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "200 OK",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8000/health",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8000/health",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "2",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8000/health",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug/worker",
+          "cells": [
+            {
+              "value": "rektslug-worker",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "backlog",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8000/queue",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "queue 1.2k",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8000/queue",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8000/queue",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "6",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8000/queue",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug/db",
+          "cells": [
+            {
+              "value": "rektslug-db",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "corrupt",
+              "severity": "crit",
+              "source": "http://127.0.0.1:8000/db",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "checksum mismatch",
+              "severity": "crit",
+              "source": "http://127.0.0.1:8000/db",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8000/db",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "3",
+              "severity": "crit",
+              "source": "http://127.0.0.1:8000/db",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug/cache",
+          "cells": [
+            {
+              "value": "rektslug-cache",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "stale",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8000/cache",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "snapshot 2h old",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8000/cache",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8000/cache",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "7300",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8000/cache",
+              "ts": "2026-10-14T08:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug/hook",
+          "cells": [
+            {
+              "value": "rektslug-hook",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "no response",
+              "severity": "missing",
+              "source": "http://rektslug.internal/hook",
+              "ts": null
+            },
+            {
+              "value": "dns error",
+              "severity": "missing",
+              "source": "http://rektslug.internal/hook",
+              "ts": null
+            },
+            {
+              "value": "http://rektslug.internal/hook",
+              "severity": "ok",
+              "source": "dash-core",
+              "ts": "2026-10-14T08:00:00Z"
+            },
+            {
+              "value": "0",
+              "severity": "missing",
+              "source": "http://rektslug.internal/hook",
+              "ts": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

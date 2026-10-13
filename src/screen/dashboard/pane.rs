@@ -128,6 +128,7 @@ pub enum Event {
     ComparisonChartInteraction(super::chart::comparison::Message),
     GexChartInteraction(crate::chart::gex::Message),
     NewsInteraction(crate::chart::news::Message),
+    SheetInteraction(crate::widget::sheet::Message),
     GexAssetSelected(GexChartAsset),
     HeatmapShaderInteraction(crate::widget::chart::heatmap::Message),
     MiniTickersListInteraction(modal::pane::mini_tickers_list::Message),
@@ -203,6 +204,17 @@ impl State {
         }
     }
 
+    pub fn sheet_subscription(
+        &self,
+        window: window::Id,
+        pane: pane_grid::Pane,
+    ) -> iced::Subscription<crate::widget::sheet::Message> {
+        match &self.content {
+            Content::Sheet(sheet) => sheet.subscription(self.id, window, pane),
+            _ => iced::Subscription::none(),
+        }
+    }
+
     pub fn new() -> Self {
         Self::default()
     }
@@ -220,7 +232,10 @@ impl State {
             link_group,
             ..Default::default()
         };
-        if matches!(state.content, Content::Gex { .. } | Content::News(_)) {
+        if matches!(
+            state.content,
+            Content::Gex { .. } | Content::News(_) | Content::Sheet(_)
+        ) {
             state.streams = ResolvedStream::Ready(Vec::new());
             state.reconcile_gex_liquidity_stream();
         }
@@ -228,7 +243,10 @@ impl State {
     }
 
     pub fn stream_pair(&self) -> Option<TickerInfo> {
-        if matches!(self.content, Content::Gex { .. } | Content::News(_)) {
+        if matches!(
+            self.content,
+            Content::Gex { .. } | Content::News(_) | Content::Sheet(_)
+        ) {
             return None;
         }
         self.streams.find_ready_map(|stream| match stream {
@@ -239,7 +257,10 @@ impl State {
     }
 
     pub fn stream_pair_kind(&self) -> Option<StreamPairKind> {
-        if matches!(self.content, Content::Gex { .. } | Content::News(_)) {
+        if matches!(
+            self.content,
+            Content::Gex { .. } | Content::News(_) | Content::Sheet(_)
+        ) {
             return None;
         }
         let ready_streams = self.streams.ready_iter()?;
@@ -448,8 +469,8 @@ impl State {
             self.settings.tick_multiply = None;
         }
 
-        if kind == ContentKind::NewsTracker {
-            if !matches!(self.content, Content::News(_)) {
+        if matches!(kind, ContentKind::NewsTracker | ContentKind::Sheet) {
+            if self.content.kind() != kind {
                 self.content = Content::placeholder(kind);
             }
             self.streams = ResolvedStream::Ready(Vec::new());
@@ -759,7 +780,7 @@ impl State {
                     (content, streams)
                 }
                 ContentKind::Starter => unreachable!(),
-                ContentKind::GexChart | ContentKind::NewsTracker => {
+                ContentKind::GexChart | ContentKind::NewsTracker | ContentKind::Sheet => {
                     unreachable!("handled before stream planning")
                 }
             }
@@ -996,6 +1017,8 @@ impl State {
 
         if matches!(self.content, Content::News(_)) {
             top_left_buttons = row![text("News Tracker").size(13)];
+        } else if matches!(self.content, Content::Sheet(_)) {
+            top_left_buttons = row![text("Sheet").size(13)];
         } else if let Some(kind) = self.stream_pair_kind() {
             let (base_ti, extra) = match kind {
                 StreamPairKind::MultiSource(list) => (list[0], list.len().saturating_sub(1)),
@@ -1143,6 +1166,9 @@ impl State {
             Content::News(news) => news
                 .view()
                 .map(move |message| Message::PaneEvent(id, Event::NewsInteraction(message))),
+            Content::Sheet(sheet) => sheet
+                .view()
+                .map(move |message| Message::PaneEvent(id, Event::SheetInteraction(message))),
             Content::Starter => {
                 let base: Element<_> = widget::toast::Manager::new(
                     center(
@@ -1907,8 +1933,13 @@ impl State {
                     }
                 }
             }
+            Event::SheetInteraction(message) => {
+                if let Content::Sheet(sheet) = &mut self.content {
+                    sheet.update(message);
+                }
+            }
             Event::ContentSelected(kind) => {
-                if kind == ContentKind::NewsTracker {
+                if matches!(kind, ContentKind::NewsTracker | ContentKind::Sheet) {
                     self.content = Content::placeholder(kind);
                     self.settings = Settings::default();
                     self.status = Status::Ready;
@@ -2462,7 +2493,7 @@ impl State {
 
         let show_modal = |modal: Modal| Message::PaneEvent(pane, Event::ShowModal(modal));
 
-        if !treat_as_starter && !matches!(self.content, Content::News(_)) {
+        if !treat_as_starter && !matches!(self.content, Content::News(_) | Content::Sheet(_)) {
             buttons = buttons.push(button_with_tooltip(
                 icon_text(Icon::Cog, 12),
                 show_modal(Modal::Settings),
@@ -2737,7 +2768,7 @@ impl State {
             Content::Ladder(panel) => panel
                 .as_mut()
                 .and_then(|p| p.invalidate(Some(now)).map(Action::Panel)),
-            Content::Starter | Content::News(_) => None,
+            Content::Starter | Content::News(_) | Content::Sheet(_) => None,
             Content::Comparison(chart) => chart
                 .as_mut()
                 .and_then(|c| c.invalidate(Some(now)).map(Action::Chart)),
@@ -2767,7 +2798,7 @@ impl State {
             }
             Content::Ladder(_) | Content::TimeAndSales(_) => Some(100),
             Content::ShaderHeatmap { .. } => None,
-            Content::Starter | Content::News(_) => None,
+            Content::Starter | Content::News(_) | Content::Sheet(_) => None,
         }
     }
 
@@ -2896,6 +2927,7 @@ pub enum Content {
     Ladder(Option<Ladder>),
     Comparison(Option<ComparisonChart>),
     News(crate::chart::news::NewsTracker),
+    Sheet(crate::widget::sheet::SheetPane),
     Gex {
         chart: Option<GexChart>,
         underlying: exchange::options::OptionsUnderlying,
@@ -3079,6 +3111,9 @@ impl Content {
             ContentKind::NewsTracker => Content::News(crate::chart::news::NewsTracker::new(
                 data::news::Config::default(),
             )),
+            ContentKind::Sheet => Content::Sheet(crate::widget::sheet::SheetPane::new(
+                data::sheet::Config::default(),
+            )),
             ContentKind::Starter => Content::Starter,
             ContentKind::CandlestickChart => Content::Kline {
                 chart: None,
@@ -3141,7 +3176,7 @@ impl Content {
             Content::Ladder(panel) => Some(panel.as_ref()?.last_update()),
             Content::Comparison(chart) => Some(chart.as_ref()?.last_update()),
             Content::Gex { chart, .. } => Some(chart.as_ref()?.last_tick()),
-            Content::Starter | Content::News(_) => None,
+            Content::Starter | Content::News(_) | Content::Sheet(_) => None,
             Content::ShaderHeatmap { chart, .. } => Some(chart.as_ref()?.last_tick?),
         }
     }
@@ -3226,6 +3261,7 @@ impl Content {
             | Content::Comparison(_)
             | Content::Gex { .. }
             | Content::News(_)
+            | Content::Sheet(_)
             | Content::ShaderHeatmap { .. } => {
                 panic!("indicator reorder on {} pane", self)
             }
@@ -3290,7 +3326,7 @@ impl Content {
             | Content::Ladder(_)
             | Content::Starter
             | Content::Comparison(_) => None,
-            Content::Gex { .. } | Content::News(_) => None,
+            Content::Gex { .. } | Content::News(_) | Content::Sheet(_) => None,
         }
     }
 
@@ -3360,6 +3396,7 @@ impl Content {
             Content::Comparison(_) => ContentKind::ComparisonChart,
             Content::Gex { .. } => ContentKind::GexChart,
             Content::News(_) => ContentKind::NewsTracker,
+            Content::Sheet(_) => ContentKind::Sheet,
             Content::Starter => ContentKind::Starter,
             Content::ShaderHeatmap { .. } => ContentKind::ShaderHeatmap,
         }
@@ -3382,7 +3419,7 @@ impl Content {
             Content::Gex {
                 chart, unsupported, ..
             } => chart.is_some() || *unsupported,
-            Content::Starter | Content::News(_) => true,
+            Content::Starter | Content::News(_) | Content::Sheet(_) => true,
         }
     }
 
@@ -3416,6 +3453,7 @@ impl PartialEq for Content {
                 | (Content::Ladder(_), Content::Ladder(_))
                 | (Content::Gex { .. }, Content::Gex { .. })
                 | (Content::News(_), Content::News(_))
+                | (Content::Sheet(_), Content::Sheet(_))
         )
     }
 }

@@ -8,6 +8,7 @@ pub mod metadata;
 pub mod news;
 pub mod orderflow;
 pub mod panel;
+pub mod sheet;
 pub mod stream;
 pub mod tickers_table;
 pub mod util;
@@ -597,6 +598,20 @@ fn sanitize_pane(value: &mut serde_json::Value, warnings: &mut Vec<String>) {
                 }
             }
         }
+        "Sheet" => {
+            if let Some(pane) = object
+                .get_mut("Sheet")
+                .and_then(serde_json::Value::as_object_mut)
+            {
+                let config = pane
+                    .entry("config")
+                    .or_insert_with(|| serde_json::json!({}));
+                if serde_json::from_value::<crate::sheet::Config>(config.clone()).is_err() {
+                    *config = serde_json::json!({});
+                    warnings.push("invalid Sheet config; reset to defaults".into());
+                }
+            }
+        }
         "HeatmapChart" | "ShaderHeatmap" => {
             if let Some(pane) = object
                 .get_mut(&tag)
@@ -1062,6 +1077,22 @@ mod tests {
         assert_eq!(config.min_impact, 75);
         assert!(config.sort_by_impact);
         let mut malformed = serde_json::json!({"NewsTracker":{"config":{"min_impact":"bad"}}});
+        super::sanitize_pane(&mut malformed, &mut warnings);
+        assert!(serde_json::from_value::<super::Pane>(malformed).is_ok());
+        assert_eq!(warnings.len(), 1);
+    }
+
+    #[test]
+    fn sheet_selected_tab_survives_sanitization_and_bad_config_resets() {
+        let mut pane = serde_json::json!({"Sheet": {"config": {"selected": "alerts"}}});
+        let mut warnings = Vec::new();
+        super::sanitize_pane(&mut pane, &mut warnings);
+        assert!(warnings.is_empty());
+        let super::Pane::Sheet { config } = serde_json::from_value(pane).unwrap() else {
+            panic!("expected Sheet")
+        };
+        assert_eq!(config.selected.as_deref(), Some("alerts"));
+        let mut malformed = serde_json::json!({"Sheet": {"config": {"selected": 7}}});
         super::sanitize_pane(&mut malformed, &mut warnings);
         assert!(serde_json::from_value::<super::Pane>(malformed).is_ok());
         assert_eq!(warnings.len(), 1);
