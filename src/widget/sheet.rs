@@ -356,4 +356,48 @@ mod tests {
             "{messages:?}"
         );
     }
+
+    /// Real e2e: reads the live dash-core at `DASH_CORE_URL` (default 127.0.0.1:8790) and
+    /// checks that every sheet with at least one non-missing row shows a real cell on screen.
+    /// Run with `cargo test -p flowsurface --bin flowsurface e2e_ -- --ignored --nocapture`.
+    #[test]
+    #[ignore = "needs a running dash-core; set DASH_CORE_URL"]
+    fn e2e_reads_a_real_cell_for_every_reachable_sheet() {
+        let url = data::sheet::endpoint();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+        let client = reqwest::Client::new();
+        let sheets = runtime
+            .block_on(fetch(&client, &url))
+            .unwrap_or_else(|e| panic!("dash-core at {url}: {e}"));
+        assert!(!sheets.sheets.is_empty(), "dash-core returned no sheets");
+
+        let mut pane = SheetPane::new(Config::default());
+        pane.update(Message::Fetched(Ok(sheets.clone())));
+        let mut reachable = 0;
+        for sheet in &sheets.sheets {
+            let live = sheet
+                .rows
+                .iter()
+                .find(|r| r.cells.iter().all(|c| c.severity != Severity::Missing));
+            pane.update(Message::Select(sheet.id.clone()));
+            let mut ui = iced_test::simulator(pane.view());
+            match live {
+                Some(row) => {
+                    reachable += 1;
+                    let text = &row.cells[0].value;
+                    assert!(
+                        ui.find(text.as_str()).is_ok(),
+                        "sheet {}: real cell {text:?} not on screen",
+                        sheet.id
+                    );
+                    println!("sheet {} reachable: cell {text:?}", sheet.id);
+                }
+                None => println!("sheet {} missing: no live row", sheet.id),
+            }
+        }
+        assert!(reachable > 0, "no reachable sheet at {url}");
+    }
 }

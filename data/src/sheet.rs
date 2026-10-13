@@ -169,23 +169,23 @@ pub mod tests {
             for row in &sheet.rows {
                 assert_eq!(row.cells.len(), sheet.columns.len(), "{}", row.id);
             }
-            for severity in [
-                Severity::Ok,
-                Severity::Warn,
-                Severity::Crit,
-                Severity::Stale,
-                Severity::Missing,
-            ] {
-                assert!(
-                    sheet
-                        .rows
-                        .iter()
-                        .flat_map(|r| &r.cells)
-                        .any(|c| c.severity == severity),
-                    "{} lacks {severity:?}",
-                    sheet.id
-                );
-            }
+        }
+        for severity in [
+            Severity::Ok,
+            Severity::Warn,
+            Severity::Crit,
+            Severity::Stale,
+            Severity::Missing,
+        ] {
+            assert!(
+                sheets
+                    .sheets
+                    .iter()
+                    .flat_map(|s| &s.rows)
+                    .flat_map(|r| &r.cells)
+                    .any(|c| c.severity == severity),
+                "fixture lacks {severity:?}"
+            );
         }
     }
 
@@ -194,16 +194,15 @@ pub mod tests {
         let tables = tab_views(&fixture());
         let infra = &tables[0];
         assert_eq!(infra.title, "Infra");
-        assert_eq!(infra.rows[0].id, "infra/questdb");
+        assert_eq!(infra.rows[0].id, "up:hyperliquid-exporter:localhost:9101");
         assert!(infra.rows[0].has_crit);
         let rest: Vec<_> = infra.rows[1..].iter().map(|r| r.id.as_str()).collect();
         assert_eq!(
             rest,
             [
-                "infra/postgres",
-                "infra/redis",
-                "infra/ingest",
-                "infra/exporter"
+                "hl:hl_blocks_behind{node=ws}",
+                "up:pepers:localhost:8777",
+                "up:workstation-node:localhost:9100"
             ]
         );
         assert_eq!(infra.crit_rows(), 1);
@@ -212,10 +211,10 @@ pub mod tests {
     #[test]
     fn cell_severity_is_carried_to_the_view() {
         let tables = tab_views(&fixture());
-        let questdb = &tables[0].rows[0];
-        assert_eq!(questdb.cells[0].severity, Severity::Ok);
-        assert_eq!(questdb.cells[1].text, "down");
-        assert_eq!(questdb.cells[1].severity, Severity::Crit);
+        let exporter = &tables[0].rows[0];
+        assert_eq!(exporter.cells[0].severity, Severity::Crit);
+        assert_eq!(exporter.cells[1].text, "down");
+        assert_eq!(exporter.cells[1].severity, Severity::Crit);
     }
 
     #[test]
