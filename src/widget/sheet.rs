@@ -244,14 +244,17 @@ async fn fetch(client: &reqwest::Client, url: &str) -> Result<Sheets, String> {
     let sheets: Sheets =
         serde_json::from_slice(&bytes).map_err(|e| format!("risposta non valida: {e}"))?;
     log::debug!(
-        "sheet: {} sheets in {} ms from {url}",
+        "sheet: {} sheets in {} ms from {}",
         sheets.sheets.len(),
-        started.elapsed().as_millis()
+        started.elapsed().as_millis(),
+        data::sheet::redact_url(url)
     );
     Ok(sheets)
 }
 
 /// reqwest hides the cause ("connection refused") in the source chain.
+/// It also embeds the request URL, userinfo included, so that URL is redacted:
+/// the result feeds both the log and the on-screen banner.
 fn error_chain(error: &reqwest::Error) -> String {
     let mut parts = vec![error.to_string()];
     let mut source = std::error::Error::source(error);
@@ -259,12 +262,33 @@ fn error_chain(error: &reqwest::Error) -> String {
         parts.push(cause.to_string());
         source = cause.source();
     }
-    parts.join(": ")
+    let text = parts.join(": ");
+    match error.url() {
+        Some(url) => text.replace(url.as_str(), &data::sheet::redact_url(url.as_str())),
+        None => text,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fetch_errors_never_carry_url_credentials() {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+        let client = reqwest::Client::new();
+        let error = runtime
+            .block_on(fetch(
+                &client,
+                "http://user:s3cret@127.0.0.1:1/v1/sheets?token=abc",
+            ))
+            .expect_err("port 1 refuses the connection");
+        assert!(!error.contains("s3cret"), "{error}");
+        assert!(!error.contains("token=abc"), "{error}");
+    }
 
     #[test]
     fn severities_have_distinct_colors() {

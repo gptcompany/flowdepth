@@ -23,6 +23,19 @@ pub enum Severity {
     Missing,
 }
 
+impl Severity {
+    /// Display rank, lower first: `crit > warn > stale > missing > ok`.
+    fn rank(self) -> u8 {
+        match self {
+            Severity::Crit => 0,
+            Severity::Warn => 1,
+            Severity::Stale => 2,
+            Severity::Missing => 3,
+            Severity::Ok => 4,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct Cell {
     pub value: String,
@@ -66,6 +79,21 @@ fn base_url_from(value: Option<&str>) -> String {
         .to_string()
 }
 
+/// `url` without userinfo, query and fragment, safe to log or show. An unparsable
+/// value is never echoed back: it may still carry credentials.
+pub fn redact_url(url: &str) -> String {
+    match url::Url::parse(url) {
+        Ok(mut parsed) => {
+            let _ = parsed.set_username("");
+            let _ = parsed.set_password(None);
+            parsed.set_query(None);
+            parsed.set_fragment(None);
+            parsed.to_string()
+        }
+        Err(_) => "<invalid url>".to_string(),
+    }
+}
+
 pub fn endpoint() -> String {
     format!("{}/v1/sheets", base_url())
 }
@@ -86,6 +114,8 @@ pub struct RowView {
     pub id: String,
     pub cells: Vec<CellView>,
     pub has_crit: bool,
+    /// Most severe cell of the row (`Ok` for a row without cells): the sort key.
+    pub worst: Severity,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -102,7 +132,8 @@ impl TableView {
     }
 }
 
-/// Table view of one sheet: rows with a `crit` cell first, source order kept otherwise.
+/// Table view of one sheet: rows ordered by their worst cell severity
+/// (`crit > warn > stale > missing > ok`), source order kept within the same severity.
 /// Cells beyond the declared columns are dropped and missing ones are not invented:
 /// a short row is shown short, never padded with a fake severity.
 pub fn table_view(sheet: &Sheet) -> TableView {
@@ -113,6 +144,12 @@ pub fn table_view(sheet: &Sheet) -> TableView {
         .map(|row| RowView {
             id: row.id.clone(),
             has_crit: row.cells.iter().any(|c| c.severity == Severity::Crit),
+            worst: row
+                .cells
+                .iter()
+                .map(|c| c.severity)
+                .min_by_key(|s| s.rank())
+                .unwrap_or(Severity::Ok),
             cells: row
                 .cells
                 .iter()
@@ -125,7 +162,7 @@ pub fn table_view(sheet: &Sheet) -> TableView {
         })
         .collect();
     // `sort_by_key` is stable, so rows of equal rank keep dash-core's order.
-    rows.sort_by_key(|r| !r.has_crit);
+    rows.sort_by_key(|r| r.worst.rank());
     TableView {
         id: sheet.id.clone(),
         title: sheet.title.clone(),
@@ -190,7 +227,7 @@ pub mod tests {
     }
 
     #[test]
-    fn crit_rows_come_first_and_order_is_stable() {
+    fn fixture_rows_are_ordered_by_severity_and_stable_within_rank() {
         let tables = tab_views(&fixture());
         let infra = &tables[0];
         assert_eq!(infra.title, "Infra");
@@ -200,12 +237,78 @@ pub mod tests {
         assert_eq!(
             rest,
             [
-                "hl:hl_blocks_behind{node=ws}",
                 "up:pepers:localhost:8777",
+                "hl:hl_blocks_behind{node=ws}",
                 "up:workstation-node:localhost:9100"
             ]
         );
         assert_eq!(infra.crit_rows(), 1);
+    }
+
+    fn sheet_with_rows(rows: &[(&str, &[Severity])]) -> Sheet {
+        Sheet {
+            id: "s".into(),
+            title: "S".into(),
+            columns: vec!["a".into(), "b".into()],
+            rows: rows
+                .iter()
+                .map(|(id, sev)| Row {
+                    id: (*id).into(),
+                    cells: sev
+                        .iter()
+                        .map(|&severity| Cell {
+                            value: String::new(),
+                            severity,
+                            source: String::new(),
+                            ts: None,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn rows_are_ordered_crit_warn_stale_missing_ok_stable_within_rank() {
+        use Severity::*;
+        let sheet = sheet_with_rows(&[
+            ("ok1", &[Ok, Ok]),
+            ("missing1", &[Ok, Missing]),
+            ("stale1", &[Stale, Ok]),
+            ("warn1", &[Ok, Warn]),
+            ("crit1", &[Warn, Crit]),
+            ("ok2", &[Ok]),
+            ("warn2", &[Warn, Stale]),
+            ("crit2", &[Crit, Missing]),
+            ("empty", &[]),
+        ]);
+        let ids: Vec<_> = table_view(&sheet).rows.into_iter().map(|r| r.id).collect();
+        assert_eq!(
+            ids,
+            [
+                "crit1", "crit2", "warn1", "warn2", "stale1", "missing1", "ok1", "ok2", "empty"
+            ]
+        );
+    }
+
+    #[test]
+    fn redact_url_strips_userinfo_query_and_fragment() {
+        assert_eq!(
+            redact_url("http://user:s3cret@host:8790/v1/sheets?token=abc#frag"),
+            "http://host:8790/v1/sheets"
+        );
+        assert_eq!(redact_url("http://u@h/v1/sheets"), "http://h/v1/sheets");
+        assert_eq!(
+            redact_url("http://127.0.0.1:8790/v1/sheets"),
+            "http://127.0.0.1:8790/v1/sheets"
+        );
+    }
+
+    #[test]
+    fn redact_url_never_echoes_an_unparsable_value() {
+        let out = redact_url("http://user:pass@[not-an-ip");
+        assert_eq!(out, "<invalid url>");
+        assert!(!out.contains("pass"));
     }
 
     #[test]
