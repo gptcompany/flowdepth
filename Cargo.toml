@@ -16,7 +16,7 @@ repository = "https://github.com/Niketion/flowdepth"
 homepage = "https://github.com/Niketion/flowdepth"
 
 [workspace]
-members = [ "data", "exchange"]
+members = [ "data", "exchange", "dash-core"]
 
 [workspace.dependencies]
 iced_core = { git = "https://github.com/iced-rs/iced.git", rev = "2b275718d19a5cf306537e1d2417a1f5e9d94ef4", features = ["serde"] }

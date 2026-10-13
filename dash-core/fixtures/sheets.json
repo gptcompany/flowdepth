@@ -1,0 +1,534 @@
+{
+  "generated_at": "2026-10-13T12:00:00Z",
+  "sheets": [
+    {
+      "id": "infra",
+      "title": "Infra",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "hl:hl_blocks_behind{node=ws}",
+          "cells": [
+            {
+              "value": "hl_blocks_behind{node=ws}",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "present",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "3",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "5",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            }
+          ]
+        },
+        {
+          "id": "up:hyperliquid-exporter:localhost:9101",
+          "cells": [
+            {
+              "value": "hyperliquid-exporter/localhost:9101",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "down",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "0",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "5",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            }
+          ]
+        },
+        {
+          "id": "up:pepers:localhost:8777",
+          "cells": [
+            {
+              "value": "pepers/localhost:8777",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "up",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "1",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "3600",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "up:workstation-node:localhost:9100",
+          "cells": [
+            {
+              "value": "workstation-node/localhost:9100",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "up",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "1",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "5",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "alerts",
+      "title": "Alerts",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "alert:a1b2c3d4e5f60001",
+          "cells": [
+            {
+              "value": "HLNodeBehind (localhost:9101)",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:30Z"
+            },
+            {
+              "value": "critical",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:30Z"
+            },
+            {
+              "value": "Hyperliquid node 1200 blocks behind",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:30Z"
+            },
+            {
+              "value": "http://127.0.0.1:9093/",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:30Z"
+            },
+            {
+              "value": "1800",
+              "severity": "crit",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:30Z"
+            }
+          ]
+        },
+        {
+          "id": "alert:a1b2c3d4e5f60002",
+          "cells": [
+            {
+              "value": "DiskFillingUp (azure-vps)",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:45Z"
+            },
+            {
+              "value": "warning",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:45Z"
+            },
+            {
+              "value": "Disk 91% full",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:45Z"
+            },
+            {
+              "value": "http://127.0.0.1:9093/",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:45Z"
+            },
+            {
+              "value": "900",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:45Z"
+            }
+          ]
+        },
+        {
+          "id": "alert:a1b2c3d4e5f60003",
+          "cells": [
+            {
+              "value": "NoSeverityLabel",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:50Z"
+            },
+            {
+              "value": "unknown",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:50Z"
+            },
+            {
+              "value": "NoSeverityLabel",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:50Z"
+            },
+            {
+              "value": "http://127.0.0.1:9093/",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:50Z"
+            },
+            {
+              "value": "120",
+              "severity": "warn",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:59:50Z"
+            }
+          ]
+        },
+        {
+          "id": "alert:a1b2c3d4e5f60004",
+          "cells": [
+            {
+              "value": "TextfileStale",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:30:00Z"
+            },
+            {
+              "value": "critical",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:30:00Z"
+            },
+            {
+              "value": "Exporter textfile not updating",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:30:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:9093/",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:30:00Z"
+            },
+            {
+              "value": "7200",
+              "severity": "stale",
+              "source": "http://127.0.0.1:9093/",
+              "ts": "2026-10-13T11:30:00Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rektslug",
+      "title": "Rektslug",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "rektslug:funding_rates:BTCUSDT",
+          "cells": [
+            {
+              "value": "funding_rates:BTCUSDT",
+              "severity": "missing",
+              "source": "http://127.0.0.1:8002/",
+              "ts": null
+            },
+            {
+              "value": "missing",
+              "severity": "missing",
+              "source": "http://127.0.0.1:8002/",
+              "ts": null
+            },
+            {
+              "value": "no rows for symbol",
+              "severity": "missing",
+              "source": "http://127.0.0.1:8002/",
+              "ts": null
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "missing",
+              "source": "http://127.0.0.1:8002/",
+              "ts": null
+            },
+            {
+              "value": "-",
+              "severity": "missing",
+              "source": "http://127.0.0.1:8002/",
+              "ts": null
+            }
+          ]
+        },
+        {
+          "id": "rektslug:health",
+          "cells": [
+            {
+              "value": "rektslug /health",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "ok",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "0.1.0",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "0",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug:klines:BTCUSDT",
+          "cells": [
+            {
+              "value": "klines:BTCUSDT",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "fresh",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "2026-10-13T11:59:00Z",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "60",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug:klines:ETHUSDT",
+          "cells": [
+            {
+              "value": "klines:ETHUSDT",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "fresh",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "2026-10-13T11:59:00Z",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            },
+            {
+              "value": "60",
+              "severity": "ok",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:59:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug:open_interest:BTCUSDT",
+          "cells": [
+            {
+              "value": "open_interest:BTCUSDT",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "stale",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "2026-10-13T11:00:00Z",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:00:00Z"
+            },
+            {
+              "value": "3600",
+              "severity": "stale",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T11:00:00Z"
+            }
+          ]
+        },
+        {
+          "id": "rektslug:ops",
+          "cells": [
+            {
+              "value": "rektslug /ops/summary",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "DEGRADED",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "-",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "http://127.0.0.1:8002/",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            },
+            {
+              "value": "0",
+              "severity": "warn",
+              "source": "http://127.0.0.1:8002/",
+              "ts": "2026-10-13T12:00:00Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
