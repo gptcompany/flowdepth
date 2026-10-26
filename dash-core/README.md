@@ -96,6 +96,64 @@ jobs.
 196 rows, each checked against the raw `/api/v1/alerts` reply. The Prometheus URL is replaced by
 `http://<prometheus>/`.
 
+## Install on the Mac (launchd)
+
+Phase 1 of gbg-agents#883: a user LaunchAgent on the Mac, loopback only (`127.0.0.1:8790`, no
+auth), reading the primary Prometheus over WireGuard. Same pattern as gbg-agents
+`scripts/metrics` (template rendered with `plistlib`, `bootout || true` then `bootstrap`). No step
+needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`.
+
+Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches Prometheus:
+`curl -s -m 5 http://10.0.0.7:30090/-/ready` prints a ready message.
+
+Build from an explicit sha and record it with the binary digest:
+
+```sh
+SHA=<sha40>; git checkout "$SHA"
+cargo build --release --locked -p dash-core
+shasum -a 256 target/release/dash-core          # note sha and digest
+mkdir -p ~/.local/share/dash-core/"$SHA" ~/.local/state/dash-core
+cp target/release/dash-core ~/.local/share/dash-core/"$SHA"/dash-core
+ln -sfn "$SHA" ~/.local/share/dash-core/current
+```
+
+Install the agent (the render refuses a non-loopback `DASH_BIND`, exit 1):
+
+```sh
+P=~/Library/LaunchAgents/com.gobabygo.dash-core.plist
+python3 dash-core/deploy/render-plist.py dash-core/deploy/com.gobabygo.dash-core.plist.in > "$P"
+plutil -lint "$P"
+launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$P"
+```
+
+Acceptance:
+
+```sh
+curl -s 127.0.0.1:8790/v1/sheets                                  # real data, five sheets
+curl -s -o /dev/null -w '%{http_code}\n' 127.0.0.1:8790/          # 200
+lsof -nP -iTCP:8790 -sTCP:LISTEN                                  # only 127.0.0.1:8790
+```
+
+Counter-check: a second instance in the foreground of another terminal, against a closed port
+(`gtimeout` if `timeout` is missing; it exits by itself after 30 s). Every Prometheus cell must read
+`missing`:
+
+```sh
+DASH_BIND=127.0.0.1:8791 DASH_PROM_URL=http://127.0.0.1:9 \
+  timeout 30 ~/.local/share/dash-core/current/dash-core     # terminal 2
+curl -s 127.0.0.1:8791/v1/sheets                            # terminal 1, within 30 s
+```
+
+Rollback: `ln -sfn <previous_sha> ~/.local/share/dash-core/current` then
+`launchctl kickstart -k "gui/$(id -u)/com.gobabygo.dash-core"`.
+
+Uninstall: `launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core"` then
+`rm ~/Library/LaunchAgents/com.gobabygo.dash-core.plist`.
+
+Render test (Linux or Mac, stdlib only, not run by the Rust CI):
+`uv run --no-project python -B -m unittest discover -s dash-core/deploy -v`.
+
 ## Known gaps (TODO)
 
 - Prometheus instant queries stamp samples with the evaluation time, so Prometheus staleness only
