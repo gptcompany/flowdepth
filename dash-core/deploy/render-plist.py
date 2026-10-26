@@ -37,6 +37,8 @@ def prom_url_error(url: str) -> str | None:
         return f"--prom-url {url!r} is not a URL"
     if parts.scheme not in ("http", "https") or not parts.hostname or port is None:
         return f"--prom-url {url!r} is not an http(s) URL with host and port"
+    if parts.path not in ("", "/") or parts.query or parts.fragment:
+        return f"--prom-url {url!r} must be the server root, without path"
     # Credentials never belong in an agent definition.
     if parts.username or parts.password:
         return "--prom-url must not carry credentials"

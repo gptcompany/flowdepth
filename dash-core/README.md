@@ -106,8 +106,10 @@ needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `mis
 The Prometheus URL is not fixed: it is `http://<WG IP of the node hosting the primary
 Prometheus>:30090` (monitoring-stack `docs/runbook-prometheus-wireguard.md`; with
 `externalTrafficPolicy: Local` only that node answers, and the IP changes when the primary moves).
-Take the current node from the runbook. Example verified on 2026-10-26: tk-mon,
-`PROM_URL=http://10.0.0.7:30090`.
+Take the current node from the runbook ("IP del nodo corrente"). Example verified on 2026-10-26
+(flowdepth#4 e2e at 10:46Z): tk-mon, `--prom-url http://10.0.0.7:30090`. The runbook still names
+`10.0.0.4` as the primary on that date (gptcompany/gbg-agents F-444): the checks below catch a
+wrong node. The URL is the server root: no path, query or credentials.
 
 Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches that node. Stop here if either check fails
 (wrong node or tunnel down):

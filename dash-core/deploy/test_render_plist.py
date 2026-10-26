@@ -92,11 +92,21 @@ class RenderTest(unittest.TestCase):
             "http://:30090",
             "http://u:p@10.0.0.7:30090",
             "http://10.0.0.7:notaport",
+            "http://10.0.0.7:30090/prometheus",
+            "http://10.0.0.7:30090/?x=1",
         ]:
             out = run(TEMPLATE, prom=url)
             self.assertNotEqual(out.returncode, 0, url)
             self.assertEqual(out.stdout, b"", url)
             self.assertIn(b"refused", out.stderr, url)
+
+    def test_server_root_url_with_or_without_slash_is_accepted(self) -> None:
+        for url in ["http://10.0.0.7:30090", "https://10.0.0.7:30090/"]:
+            out = run(TEMPLATE, prom=url)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            self.assertEqual(
+                plistlib.loads(out.stdout)["EnvironmentVariables"]["DASH_PROM_URL"], url
+            )
 
     def test_missing_user_is_refused(self) -> None:
         out = run(TEMPLATE, user=None)
