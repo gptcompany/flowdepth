@@ -529,6 +529,207 @@
           ]
         }
       ]
+    },
+    {
+      "id": "completeness",
+      "title": "Completezza",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "completeness:tk-hl-1:hl_block_continuity",
+          "cells": [
+            {
+              "value": "tk-hl-1 · continuità blocchi",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "missing",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "rilevatore non attivo",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "-",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            }
+          ]
+        },
+        {
+          "id": "completeness:tk-hl-1:hl_core_block_height",
+          "cells": [
+            {
+              "value": "tk-hl-1 · altezza blocco",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "presente",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "1197638346",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "5",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            }
+          ]
+        },
+        {
+          "id": "completeness:tk-hl-2:hl_block_continuity",
+          "cells": [
+            {
+              "value": "tk-hl-2 · continuità blocchi",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "missing",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "rilevatore non attivo",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "-",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            }
+          ]
+        },
+        {
+          "id": "completeness:tk-hl-2:hl_core_block_height",
+          "cells": [
+            {
+              "value": "tk-hl-2 · altezza blocco",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "presente",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "1195454145",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            },
+            {
+              "value": "5",
+              "severity": "ok",
+              "source": "http://127.0.0.1:9090/",
+              "ts": "2026-10-13T11:59:55Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shadow",
+      "title": "Shadow",
+      "columns": [
+        "component",
+        "status",
+        "value",
+        "source",
+        "age_s"
+      ],
+      "rows": [
+        {
+          "id": "shadow:prometheus",
+          "cells": [
+            {
+              "value": "nautilus_shadow ledger",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "missing",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "nessun dato dal ledger shadow",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "http://127.0.0.1:9090/",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            },
+            {
+              "value": "-",
+              "severity": "missing",
+              "source": "http://127.0.0.1:9090/",
+              "ts": null
+            }
+          ]
+        }
+      ]
     }
   ]
 }

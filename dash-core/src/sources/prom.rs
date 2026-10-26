@@ -23,18 +23,18 @@ pub struct PromReply {
 }
 
 #[derive(Debug, Deserialize)]
-struct PromData {
+pub(crate) struct PromData {
     result: Vec<PromSample>,
 }
 
 #[derive(Debug, Deserialize)]
-struct PromSample {
-    metric: BTreeMap<String, String>,
+pub(crate) struct PromSample {
+    pub(crate) metric: BTreeMap<String, String>,
     /// `[unix_seconds, "value"]`
-    value: (f64, String),
+    pub(crate) value: (f64, String),
 }
 
-fn samples(reply: PromReply) -> Result<Vec<PromSample>, String> {
+pub(crate) fn samples(reply: PromReply) -> Result<Vec<PromSample>, String> {
     if reply.status != "success" {
         return Err(reply
             .error
@@ -46,12 +46,12 @@ fn samples(reply: PromReply) -> Result<Vec<PromSample>, String> {
         .ok_or_else(|| "success reply without data".to_owned())
 }
 
-fn sample_ts(sample: &PromSample) -> Option<DateTime<Utc>> {
+pub(crate) fn sample_ts(sample: &PromSample) -> Option<DateTime<Utc>> {
     // Seconds precision keeps the contract output stable.
     DateTime::from_timestamp(sample.value.0.floor() as i64, 0)
 }
 
-fn label<'a>(sample: &'a PromSample, key: &str) -> &'a str {
+pub(crate) fn label<'a>(sample: &'a PromSample, key: &str) -> &'a str {
     sample.metric.get(key).map_or("?", String::as_str)
 }
 
