@@ -379,6 +379,14 @@ async fn shadow_reads_orders_at_utc_midnight_and_only_prometheus_queries() {
         })
         .collect::<Vec<_>>();
     assert_eq!(midnight, [Some("1791849600".to_owned())]);
+    let resets = "sum by (strategy) (resets(nautilus_shadow_orders_total[43200s]))";
+    assert!(
+        reqs.iter().any(|q| q
+            .url
+            .query_pairs()
+            .any(|(k, v)| k == "query" && v == resets)),
+        "reset check since 00:00Z not queried"
+    );
     assert!(
         reqs.iter()
             .all(|q| q.method.as_str() == "GET" && q.url.path().starts_with("/api/v1/")),

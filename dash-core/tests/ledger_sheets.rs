@@ -151,7 +151,10 @@ fn completeness_old_detector_run_is_never_ok() {
 fn shadow_real_reply_says_no_ledger_data() {
     let r: PromReply = serde_json::from_str(&fixture("recorded/prom_shadow.json")).unwrap();
     let empty: PromReply = serde_json::from_str(&fixture("recorded/prom_shadow.json")).unwrap();
-    assert_eq!(shadow::rows(r, Ok(empty), "p", now()).unwrap_err(), NO_DATA);
+    assert_eq!(
+        shadow::rows(r, Ok(empty), Ok(no_resets()), "p", now()).unwrap_err(),
+        NO_DATA
+    );
 }
 
 #[test]
@@ -167,7 +170,10 @@ fn shadow_ignores_other_nautilus_shadow_producers() {
         ],
     );
     let empty = reply(MIDNIGHT, &[]);
-    assert_eq!(shadow::rows(r, Ok(empty), "p", now()).unwrap_err(), NO_DATA);
+    assert_eq!(
+        shadow::rows(r, Ok(empty), Ok(no_resets()), "p", now()).unwrap_err(),
+        NO_DATA
+    );
 }
 
 fn ledger(run_age_s: i64) -> PromReply {
@@ -193,7 +199,7 @@ fn ledger(run_age_s: i64) -> PromReply {
 fn shadow_ledger_rows_with_fresh_exporter() {
     let b: &[(&str, &str)] = &[("strategy", "a"), ("side", "buy"), ("status", "filled")];
     let midnight = reply(MIDNIGHT, &[("nautilus_shadow_orders_total", b, "4")]);
-    let rows = shadow::rows(ledger(60), Ok(midnight), "p", now()).unwrap();
+    let rows = shadow::rows(ledger(60), Ok(midnight), Ok(no_resets()), "p", now()).unwrap();
     let get = |k: &str| by_id(&rows, &format!("shadow:a:{k}"));
     assert_eq!(cell(get("ordini simulati totali"), 2), ("10", Severity::Ok));
     assert_eq!(cell(get("ordini simulati oggi"), 2), ("6", Severity::Ok));
@@ -210,7 +216,14 @@ fn shadow_ledger_rows_with_fresh_exporter() {
 
 #[test]
 fn shadow_old_exporter_makes_every_row_stale() {
-    let rows = shadow::rows(ledger(3600), Err("http 503".into()), "p", now()).unwrap();
+    let rows = shadow::rows(
+        ledger(3600),
+        Err("http 503".into()),
+        Ok(no_resets()),
+        "p",
+        now(),
+    )
+    .unwrap();
     assert_eq!(
         by_id(&rows, "shadow:exporter").cells[1].value,
         "vecchio di 60 minuti"
@@ -231,20 +244,111 @@ fn shadow_old_exporter_makes_every_row_stale() {
 
 #[test]
 fn shadow_orders_today_without_midnight_sample_or_after_reset() {
-    let rows = shadow::rows(ledger(60), Ok(reply(MIDNIGHT, &[])), "p", now()).unwrap();
+    let rows = shadow::rows(
+        ledger(60),
+        Ok(reply(MIDNIGHT, &[])),
+        Ok(no_resets()),
+        "p",
+        now(),
+    )
+    .unwrap();
     assert_eq!(
         cell(by_id(&rows, "shadow:a:ordini simulati oggi"), 2),
         ("assente: nessun campione alle 00:00Z", Severity::Missing)
     );
     let b: &[(&str, &str)] = &[("strategy", "a"), ("side", "buy"), ("status", "filled")];
     let midnight = reply(MIDNIGHT, &[("nautilus_shadow_orders_total", b, "50")]);
-    let rows = shadow::rows(ledger(60), Ok(midnight), "p", now()).unwrap();
+    let rows = shadow::rows(ledger(60), Ok(midnight), Ok(no_resets()), "p", now()).unwrap();
     let today = by_id(&rows, "shadow:a:ordini simulati oggi");
-    assert_eq!(today.cells[1].value, "contatore azzerato oggi");
-    assert_eq!(cell(today, 2), ("assente", Severity::Warn));
+    assert_eq!(
+        cell(today, 2),
+        ("non valutabile: contatore azzerato", Severity::Warn)
+    );
+}
+
+/// SYNTHETIC `sum by (strategy) (resets(...))` reply: aggregated, so no `__name__` matters.
+fn resets(n: &str) -> PromReply {
+    reply(NOW, &[("", &[("strategy", "a")], n)])
+}
+
+fn no_resets() -> PromReply {
+    resets("0")
+}
+
+#[test]
+fn shadow_reset_since_midnight_is_not_assessable_even_when_total_grew() {
+    // Baseline 4 at 00:00Z, reset afterwards, then 10 orders: "10 - 4 = 6" would be a fake value.
+    let b: &[(&str, &str)] = &[("strategy", "a"), ("side", "buy"), ("status", "filled")];
+    let midnight = reply(MIDNIGHT, &[("nautilus_shadow_orders_total", b, "4")]);
+    let rows = shadow::rows(ledger(60), Ok(midnight), Ok(resets("1")), "p", now()).unwrap();
+    let today = by_id(&rows, "shadow:a:ordini simulati oggi");
+    assert_eq!(today.cells[1].value, "non valutabile");
+    assert_eq!(
+        cell(today, 2),
+        ("non valutabile: contatore azzerato", Severity::Warn)
+    );
+    // Totals are not differences: they stay as reported.
+    assert_eq!(
+        cell(by_id(&rows, "shadow:a:ordini simulati totali"), 2),
+        ("10", Severity::Ok)
+    );
+}
+
+#[test]
+fn shadow_partial_midnight_baseline_or_failed_reset_check_is_never_ok() {
+    let b: &[(&str, &str)] = &[("strategy", "a"), ("side", "buy"), ("status", "filled")];
+    let s: &[(&str, &str)] = &[("strategy", "a"), ("side", "sell"), ("status", "rejected")];
+    let partial = reply(
+        MIDNIGHT,
+        &[
+            ("nautilus_shadow_orders_total", b, "4"),
+            ("nautilus_shadow_orders_total", s, "+Inf"),
+        ],
+    );
+    let rows = shadow::rows(ledger(60), Ok(partial), Ok(no_resets()), "p", now()).unwrap();
+    assert_eq!(
+        cell(by_id(&rows, "shadow:a:ordini simulati oggi"), 2),
+        ("non valutabile: serie non numerica", Severity::Warn)
+    );
+    let midnight = reply(MIDNIGHT, &[("nautilus_shadow_orders_total", b, "4")]);
+    let rows = shadow::rows(ledger(60), Ok(midnight), Err("http 503".into()), "p", now()).unwrap();
+    assert_eq!(
+        cell(by_id(&rows, "shadow:a:ordini simulati oggi"), 2),
+        ("assente: http 503", Severity::Missing)
+    );
+}
+
+#[test]
+fn resets_window_starts_at_utc_midnight() {
+    assert_eq!(
+        shadow::resets_query(now()),
+        "sum by (strategy) (resets(nautilus_shadow_orders_total[43200s]))"
+    );
 }
 
 #[test]
 fn midnight_is_start_of_utc_day() {
     assert_eq!(shadow::midnight_utc(now()), MIDNIGHT);
+}
+
+#[test]
+fn shadow_non_finite_series_is_not_assessable_never_ok() {
+    let buy: &[(&str, &str)] = &[("strategy", "a"), ("side", "buy"), ("status", "filled")];
+    let sell: &[(&str, &str)] = &[("strategy", "a"), ("side", "sell"), ("status", "rejected")];
+    let run = (NOW - 60).to_string();
+    let r = reply(
+        NOW,
+        &[
+            ("nautilus_shadow_orders_total", buy, "7"),
+            ("nautilus_shadow_orders_total", sell, "NaN"),
+            ("nautilus_shadow_exporter_run_timestamp_seconds", &[], &run),
+        ],
+    );
+    let midnight = reply(MIDNIGHT, &[("nautilus_shadow_orders_total", buy, "4")]);
+    let rows = shadow::rows(r, Ok(midnight), Ok(no_resets()), "p", now()).unwrap();
+    for k in ["ordini simulati totali", "ordini simulati oggi"] {
+        let row = by_id(&rows, &format!("shadow:a:{k}"));
+        assert_eq!(row.cells[1].value, "non valutabile", "{row:#?}");
+        assert_eq!(row.cells[0].severity, Severity::Warn);
+    }
 }
