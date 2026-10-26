@@ -12,9 +12,12 @@ import ipaddress
 import os
 import plistlib
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
 from urllib.parse import urlsplit
+
+BINARY = "/Users/{user}/.local/share/dash-core/current/dash-core"
 
 
 def render(value: object, subs: dict[str, str]) -> object:
@@ -30,18 +33,46 @@ def render(value: object, subs: dict[str, str]) -> object:
 
 
 def prom_url_error(url: str) -> str | None:
+    """Fixed messages only: the supplied URL may carry a secret and is never echoed."""
     try:
         parts = urlsplit(url)
+        # Credentials never belong in an agent definition; checked before .port can raise.
+        if parts.username or parts.password:
+            return "--prom-url must not carry credentials"
         port = parts.port
     except ValueError:
-        return f"--prom-url {url!r} is not a URL"
-    if parts.scheme not in ("http", "https") or not parts.hostname or port is None:
-        return f"--prom-url {url!r} is not an http(s) URL with host and port"
+        return "--prom-url is not a valid URL"
+    if parts.scheme not in ("http", "https"):
+        return "--prom-url scheme must be http or https"
+    if not parts.hostname or port is None:
+        return "--prom-url must have a host and a port"
     if parts.path not in ("", "/") or parts.query or parts.fragment:
-        return f"--prom-url {url!r} must be the server root, without path"
-    # Credentials never belong in an agent definition.
-    if parts.username or parts.password:
-        return "--prom-url must not carry credentials"
+        return "--prom-url must be the server root, without path, query or fragment"
+    return None
+
+
+def strings(value: object) -> Iterator[str]:
+    """Every dict key and string value in a parsed plist."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in cast(list[object], value):
+            yield from strings(item)
+    elif isinstance(value, dict):
+        for key, item in cast(dict[str, object], value).items():
+            yield key
+            yield from strings(item)
+
+
+def shape_error(plist: dict[str, object], user: str) -> str | None:
+    """The bind check only holds if nothing else can set DASH_BIND (rev-fd6-r1 R3)."""
+    if plist.get("ProgramArguments") != [BINARY.format(user=user)]:
+        return "ProgramArguments must be exactly the dash-core binary"
+    env = plist.get("EnvironmentVariables")
+    others = {k: v for k, v in env.items() if k != "DASH_BIND"} if isinstance(env, dict) else {}
+    rest = {k: v for k, v in plist.items() if k != "EnvironmentVariables"}
+    if any("DASH_BIND" in text for text in strings([rest, others])):
+        return "DASH_BIND appears outside EnvironmentVariables.DASH_BIND"
     return None
 
 
@@ -56,7 +87,7 @@ def loopback_bind_error(plist: dict[str, object]) -> str | None:
     except ValueError:
         ip = None
     if not sep or not port.isdigit() or ip is None or not ip.is_loopback:
-        return f"DASH_BIND {bind!r} is not a loopback ip:port"
+        return "DASH_BIND is not a loopback ip:port"
     return None
 
 
@@ -80,7 +111,9 @@ def main() -> int:
     if not isinstance(plist, dict):
         print("render-plist: template is not a plist dict", file=sys.stderr)
         return 1
-    error = loopback_bind_error(cast(dict[str, object], plist))
+    error = shape_error(cast(dict[str, object], plist), user) or loopback_bind_error(
+        cast(dict[str, object], plist)
+    )
     if error:
         print(f"render-plist: refused: {error}", file=sys.stderr)
         return 1

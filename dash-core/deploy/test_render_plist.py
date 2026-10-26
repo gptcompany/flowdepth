@@ -1,6 +1,6 @@
 """Render checks for the dash-core LaunchAgent; stdlib only, not run by the Rust CI.
 
-Run: uv run --no-project python -B -m unittest discover -s dash-core/deploy -v
+Run: uv run --no-project --python 3.12 python -B -m unittest discover -s dash-core/deploy -v
 """
 
 import os
@@ -38,6 +38,14 @@ def with_bind(bind: str) -> bytes:
     plist = plistlib.loads(TEMPLATE.read_bytes())
     plist["EnvironmentVariables"]["DASH_BIND"] = bind
     return plistlib.dumps(plist)
+
+
+def write_template(tmp: str, mutate) -> Path:
+    plist = plistlib.loads(TEMPLATE.read_bytes())
+    mutate(plist)
+    path = Path(tmp) / "variant.plist.in"
+    path.write_bytes(plistlib.dumps(plist))
+    return path
 
 
 class RenderTest(unittest.TestCase):
@@ -107,6 +115,41 @@ class RenderTest(unittest.TestCase):
             self.assertEqual(
                 plistlib.loads(out.stdout)["EnvironmentVariables"]["DASH_PROM_URL"], url
             )
+
+    def test_refused_url_never_echoes_its_credentials(self) -> None:
+        # rev-fd6-r1 R1: no error branch may print the supplied value.
+        secret = "SENTINEL-PW-4c1d"
+        for tail in [
+            "10.0.0.7:30090/prometheus",
+            "10.0.0.7:30090/?x=1",
+            "10.0.0.7:nope",
+            "10.0.0.7",
+        ]:
+            out = run(TEMPLATE, prom=f"http://user:{secret}@{tail}")
+            self.assertEqual(out.returncode, 1, tail)
+            self.assertNotIn(secret.encode(), out.stdout, tail)
+            self.assertNotIn(secret.encode(), out.stderr, tail)
+            self.assertIn(b"refused", out.stderr, tail)
+
+    def test_bind_override_outside_the_environment_is_refused(self) -> None:
+        # rev-fd6-r1 R3: the review's counter-template, then DASH_BIND hidden elsewhere.
+        binary = "/Users/@USER@/.local/share/dash-core/current/dash-core"
+
+        def env_wrapper(p: dict) -> None:
+            p["ProgramArguments"] = ["/usr/bin/env", "DASH_BIND=0.0.0.0:8790", binary]
+
+        def extra_argument(p: dict) -> None:
+            p["ProgramArguments"] = [binary, "--verbose"]
+
+        def bind_elsewhere(p: dict) -> None:
+            p["Sockets"] = {"DASH_BIND": "0.0.0.0:8790"}
+
+        with tempfile.TemporaryDirectory(dir=HERE) as tmp:
+            for mutate in [env_wrapper, extra_argument, bind_elsewhere]:
+                out = run(write_template(tmp, mutate))
+                self.assertEqual(out.returncode, 1, mutate.__name__)
+                self.assertEqual(out.stdout, b"", mutate.__name__)
+                self.assertIn(b"refused", out.stderr, mutate.__name__)
 
     def test_missing_user_is_refused(self) -> None:
         out = run(TEMPLATE, user=None)

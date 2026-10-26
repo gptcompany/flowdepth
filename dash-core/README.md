@@ -101,7 +101,9 @@ jobs.
 Phase 1 of gbg-agents#883: a user LaunchAgent on the Mac, loopback only (`127.0.0.1:8790`, no
 auth), reading the primary Prometheus over WireGuard. Same pattern as gbg-agents
 `scripts/metrics` (template rendered with `plistlib`, `bootout || true` then `bootstrap`). No step
-needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`.
+needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`. Python
+steps run through `uv run --no-project --python 3.12` (the system `python3` of macOS may be 3.9);
+waits and checks use `curl --max-time`, no `timeout`/`gtimeout`.
 
 The Prometheus URL is not fixed: it is `http://<WG IP of the node hosting the primary
 Prometheus>:30090` (monitoring-stack `docs/runbook-prometheus-wireguard.md`; with
@@ -116,9 +118,10 @@ Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches that node. Stop here if eit
 
 ```sh
 PROM_URL=http://10.0.0.7:30090                                    # current node, see above
-curl -s -m 5 "$PROM_URL/-/ready"                                  # ready message
-curl -s -m 5 "$PROM_URL/api/v1/query?query=up" \
-  | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)["status"] != "success")' && echo ok
+curl -s --max-time 5 "$PROM_URL/-/ready"                          # ready message
+curl -s --max-time 5 "$PROM_URL/api/v1/query?query=up" \
+  | uv run --no-project --python 3.12 python -c \
+    'import json,sys; sys.exit(json.load(sys.stdin)["status"] != "success")' && echo ok
 ```
 
 Build from an explicit sha and record it with the binary digest:
@@ -132,12 +135,15 @@ cp target/release/dash-core ~/.local/share/dash-core/"$SHA"/dash-core
 ln -sfn "$SHA" ~/.local/share/dash-core/current
 ```
 
-Install the agent (the render requires `--prom-url`, an http(s) URL with host and port, and refuses
-a non-loopback `DASH_BIND`; both fail with exit != 0 and write nothing):
+Install the agent. The render requires `--prom-url` (an http(s) server root with host and port, no
+credentials; errors never echo the value), refuses a non-loopback `DASH_BIND`, and refuses a
+template whose `ProgramArguments` is not exactly the binary or that sets `DASH_BIND` anywhere else.
+Every refusal exits != 0 and writes nothing:
 
 ```sh
+mkdir -p ~/Library/LaunchAgents
 P=~/Library/LaunchAgents/com.gobabygo.dash-core.plist
-python3 dash-core/deploy/render-plist.py --prom-url "$PROM_URL" \
+uv run --no-project --python 3.12 dash-core/deploy/render-plist.py --prom-url "$PROM_URL" \
   dash-core/deploy/com.gobabygo.dash-core.plist.in > "$P.new" && mv "$P.new" "$P"
 plutil -lint "$P"
 launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core" 2>/dev/null || true
@@ -147,19 +153,18 @@ launchctl bootstrap "gui/$(id -u)" "$P"
 Acceptance:
 
 ```sh
-curl -s 127.0.0.1:8790/v1/sheets                                  # real data, five sheets
-curl -s -o /dev/null -w '%{http_code}\n' 127.0.0.1:8790/          # 200
+curl -s --max-time 10 127.0.0.1:8790/v1/sheets                    # real data, five sheets
+curl -s --max-time 10 -o /dev/null -w '%{http_code}\n' 127.0.0.1:8790/   # 200
 lsof -nP -iTCP:8790 -sTCP:LISTEN                                  # only 127.0.0.1:8790
 ```
 
-Counter-check: a second instance in the foreground of another terminal, against a closed port
-(`gtimeout` if `timeout` is missing; it exits by itself after 30 s). Every Prometheus cell must read
-`missing`:
+Counter-check: a second instance in the foreground of another terminal, against a closed port;
+every Prometheus cell must read `missing`. Close it with Ctrl-C in that terminal afterwards:
 
 ```sh
 DASH_BIND=127.0.0.1:8791 DASH_PROM_URL=http://127.0.0.1:9 \
-  timeout 30 ~/.local/share/dash-core/current/dash-core     # terminal 2
-curl -s 127.0.0.1:8791/v1/sheets                            # terminal 1, within 30 s
+  ~/.local/share/dash-core/current/dash-core                # terminal 2, foreground
+curl -s --max-time 10 127.0.0.1:8791/v1/sheets              # terminal 1
 ```
 
 Rollback: `ln -sfn <previous_sha> ~/.local/share/dash-core/current` then
@@ -169,7 +174,7 @@ Uninstall: `launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core"` then
 `rm ~/Library/LaunchAgents/com.gobabygo.dash-core.plist`.
 
 Render test (Linux or Mac, stdlib only, not run by the Rust CI):
-`uv run --no-project python -B -m unittest discover -s dash-core/deploy -v`.
+`uv run --no-project --python 3.12 python -B -m unittest discover -s dash-core/deploy -v`.
 
 ## Known gaps (TODO)
 
