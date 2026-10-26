@@ -583,31 +583,31 @@
               "value": "tk-hl-1 · altezza blocco",
               "severity": "ok",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-13T11:59:31Z"
             },
             {
-              "value": "presente",
+              "value": "aggiornato",
               "severity": "ok",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-13T11:59:31Z"
             },
             {
-              "value": "1197638346",
+              "value": "1197650826",
               "severity": "ok",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-13T11:59:31Z"
             },
             {
               "value": "http://127.0.0.1:9090/",
               "severity": "ok",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-13T11:59:31Z"
             },
             {
-              "value": "5",
+              "value": "29",
               "severity": "ok",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-13T11:59:31Z"
             }
           ]
         },
@@ -651,33 +651,33 @@
           "cells": [
             {
               "value": "tk-hl-2 · altezza blocco",
-              "severity": "ok",
+              "severity": "stale",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-11T15:57:10Z"
             },
             {
-              "value": "presente",
-              "severity": "ok",
+              "value": "vecchio di 2642 minuti",
+              "severity": "stale",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-11T15:57:10Z"
             },
             {
               "value": "1195454145",
-              "severity": "ok",
+              "severity": "stale",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-11T15:57:10Z"
             },
             {
               "value": "http://127.0.0.1:9090/",
-              "severity": "ok",
+              "severity": "stale",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-11T15:57:10Z"
             },
             {
-              "value": "5",
-              "severity": "ok",
+              "value": "158570",
+              "severity": "stale",
               "source": "http://127.0.0.1:9090/",
-              "ts": "2026-10-13T11:59:55Z"
+              "ts": "2026-10-11T15:57:10Z"
             }
           ]
         }

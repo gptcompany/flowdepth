@@ -68,7 +68,7 @@ pub async fn mount_ledgers(server: &MockServer, completeness: String, shadow: St
     }
 }
 
-pub const COMPLETENESS_QUERY: &str = r#"{__name__=~"hl_block_continuity_(last_block|gap_blocks_total|last_gap_start|last_gap_end|run_timestamp_seconds)|hl_core_block_height"}"#;
+pub const COMPLETENESS_QUERY: &str = r#"{__name__=~"hl_block_continuity_(last_block|gap_blocks_total|last_gap_start|last_gap_end|run_timestamp_seconds)|hl_core_block_height|hl_core_latest_block_time"}"#;
 pub const SHADOW_QUERY: &str = r#"{__name__=~"nautilus_shadow_(orders_total|fills_total|realized_pnl_usd|last_order_timestamp_seconds|exporter_run_timestamp_seconds)"}"#;
 
 pub async fn mount_alerts(server: &MockServer, body: String) {

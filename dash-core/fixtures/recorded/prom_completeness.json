@@ -1,4 +1,6 @@
 {"status":"success","data":{"resultType":"vector","result":[
-{"metric":{"__name__":"hl_core_block_height","host":"tk-hl-1","instance":"tk-hl-1","job":"vps-exporters"},"value":[1791892795.123,"1197638346"]},
-{"metric":{"__name__":"hl_core_block_height","host":"tk-hl-2","instance":"tk-hl-2","job":"vps-exporters"},"value":[1791892795.123,"1195454145"]}
+{"metric":{"__name__":"hl_core_block_height","host":"tk-hl-1","instance":"tk-hl-1","job":"vps-exporters"},"value":[1791892795.123,"1197650826"]},
+{"metric":{"__name__":"hl_core_latest_block_time","host":"tk-hl-1","instance":"tk-hl-1","job":"vps-exporters"},"value":[1791892795.123,"1791892771"]},
+{"metric":{"__name__":"hl_core_block_height","host":"tk-hl-2","instance":"tk-hl-2","job":"vps-exporters"},"value":[1791892795.123,"1195454145"]},
+{"metric":{"__name__":"hl_core_latest_block_time","host":"tk-hl-2","instance":"tk-hl-2","job":"vps-exporters"},"value":[1791892795.123,"1791734230"]}
 ]}}

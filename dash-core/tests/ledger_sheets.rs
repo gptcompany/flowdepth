@@ -1,8 +1,9 @@
 //! Mapping of the `completeness` and `shadow` sheets (no HTTP).
 //!
 //! `recorded/prom_completeness.json` and `recorded/prom_shadow.json` are real replies of the
-//! primary Prometheus (2026-10-26, labels trimmed to name/host/instance/job, timestamps moved to
-//! the test epoch). The inline replies below are SYNTHETIC: on that date no
+//! primary Prometheus (2026-10-26, labels trimmed to name/host/instance/job, sample timestamps
+//! moved to the test epoch and `hl_core_latest_block_time` shifted by the same offset, so block
+//! ages are the real ones). The inline replies below are SYNTHETIC: on that date no
 //! `hl_block_continuity_*` series and no ledger `nautilus_shadow_*` series exist yet, so their
 //! shape follows the names fixed in gbg-agents#883.
 
@@ -56,14 +57,33 @@ fn completeness_real_reply_says_detector_not_active() {
     let rows = completeness::rows(r, "p", now()).unwrap();
     assert_eq!(rows.len(), 4);
     for node in ["tk-hl-1", "tk-hl-2"] {
-        let h = by_id(&rows, &format!("completeness:{node}:hl_core_block_height"));
-        assert_eq!(h.cells[1].value, "presente");
-        assert_eq!(h.cells[0].severity, Severity::Ok);
         let c = by_id(&rows, &format!("completeness:{node}:hl_block_continuity"));
         assert_eq!(cell(c, 2), (INACTIVE, Severity::Missing));
     }
     let h = by_id(&rows, "completeness:tk-hl-1:hl_core_block_height");
-    assert_eq!(h.cells[2].value, "1197638346");
+    assert_eq!(h.cells[1].value, "aggiornato");
+    assert_eq!(cell(h, 2), ("1197650826", Severity::Ok));
+    assert_eq!(h.cells[4].value, "29");
+}
+
+#[test]
+fn completeness_stuck_node_height_is_stale_not_ok() {
+    // Real: on 2026-10-26 tk-hl-2 kept exporting the same height, its latest block ~44 h old.
+    let r: PromReply = serde_json::from_str(&fixture("recorded/prom_completeness.json")).unwrap();
+    let rows = completeness::rows(r, "p", now()).unwrap();
+    let h = by_id(&rows, "completeness:tk-hl-2:hl_core_block_height");
+    assert_eq!(h.cells[1].value, "vecchio di 2642 minuti");
+    assert_eq!(cell(h, 2), ("1195454145", Severity::Stale));
+    assert!(h.cells.iter().all(|c| c.severity == Severity::Stale));
+}
+
+#[test]
+fn completeness_height_without_block_time_is_never_ok() {
+    let n: &[(&str, &str)] = &[("host", "n3")];
+    let rows =
+        completeness::rows(reply(NOW, &[("hl_core_block_height", n, "7")]), "p", now()).unwrap();
+    let h = by_id(&rows, "completeness:n3:hl_core_block_height");
+    assert_eq!(cell(h, 2), ("7", Severity::Warn));
 }
 
 #[test]

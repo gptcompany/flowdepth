@@ -46,7 +46,7 @@ pub(crate) fn samples(reply: PromReply) -> Result<Vec<PromSample>, String> {
         .ok_or_else(|| "success reply without data".to_owned())
 }
 
-pub(crate) fn sample_ts(sample: &PromSample) -> Option<DateTime<Utc>> {
+fn sample_ts(sample: &PromSample) -> Option<DateTime<Utc>> {
     // Seconds precision keeps the contract output stable.
     DateTime::from_timestamp(sample.value.0.floor() as i64, 0)
 }

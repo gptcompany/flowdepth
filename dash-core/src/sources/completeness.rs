@@ -8,15 +8,17 @@ use std::collections::BTreeMap;
 
 use chrono::{DateTime, Utc};
 
-use super::prom::{PromReply, PromSample, label, sample_ts, samples};
+use super::prom::{PromReply, PromSample, label, samples};
 use super::{derived, endpoint_url, finite, run_freshness, unavailable_sheet};
-use crate::config::{Endpoint, PROM_STALE_S};
+use crate::config::Endpoint;
 use crate::fetch::Fetcher;
-use crate::model::{Reading, Row, Severity, Sheet, age_secs, with_staleness};
+use crate::model::{Reading, Row, Severity, Sheet};
 
 const SOURCE: &str = "prometheus";
-const SELECTOR: &str = r#"{__name__=~"hl_block_continuity_(last_block|gap_blocks_total|last_gap_start|last_gap_end|run_timestamp_seconds)|hl_core_block_height"}"#;
+const SELECTOR: &str = r#"{__name__=~"hl_block_continuity_(last_block|gap_blocks_total|last_gap_start|last_gap_end|run_timestamp_seconds)|hl_core_block_height|hl_core_latest_block_time"}"#;
 const HEIGHT: &str = "hl_core_block_height";
+/// Unix seconds of the node's latest block (checked against the live series on 2026-10-26).
+const BLOCK_TIME: &str = "hl_core_latest_block_time";
 const RUN_TS: &str = "hl_block_continuity_run_timestamp_seconds";
 const GAPS: &str = "hl_block_continuity_gap_blocks_total";
 /// Continuity series shown per node once the detector is active.
@@ -29,6 +31,10 @@ const CONTINUITY: [(&str, &str); 4] = [
 /// A detector run older than this makes the node's continuity rows stale. The detector cadence
 /// is not published yet (hyperliquid-node#194); 15 minutes leaves room for a 5-minute timer.
 pub const CONTINUITY_STALE_S: i64 = 900;
+/// A latest block older than this makes the node's height stale: a stuck node keeps exporting
+/// the same height on every scrape, so the sample age alone would read `ok`. HL produces blocks
+/// sub-second; 15 minutes only flags a node that has stopped, not one that lags.
+pub const BLOCK_STALE_S: i64 = 900;
 pub const INACTIVE: &str = "rilevatore non attivo";
 
 /// Rows for one node: height, then either «rilevatore non attivo» or run age plus each series.
@@ -39,22 +45,20 @@ fn node_rows(
 ) -> Vec<(String, Reading)> {
     let value = |m: &str| series.get(m).and_then(|s| finite(&s.value.1));
     let comp = |title: &str| format!("{node} · {title}");
-    let height = match (value(HEIGHT), series.get(HEIGHT).and_then(|s| sample_ts(s))) {
-        (Some(v), ts) => {
-            let age_s = ts.map(|t| age_secs(t, now));
-            let severity = age_s.map_or(Severity::Ok, |a| {
-                with_staleness(Severity::Ok, a, PROM_STALE_S)
-            });
-            Reading {
-                status: "presente".into(),
-                value: format!("{v:.0}"),
-                severity,
-                ts,
-                age_s,
-                ..Reading::missing(&comp("altezza blocco"), "", "")
-            }
-        }
-        (None, _) => Reading::missing(&comp("altezza blocco"), "", "assente"),
+    // The height is as fresh as the node's latest block, not as the scrape that carried it.
+    let (fresh, block) = run_freshness(
+        comp("altezza blocco"),
+        value(BLOCK_TIME),
+        now,
+        BLOCK_STALE_S,
+    );
+    let height = match value(HEIGHT) {
+        Some(v) if block.ts.is_some() => Reading {
+            value: format!("{v:.0}"),
+            ..block
+        },
+        Some(v) => derived(&block, fresh, comp("altezza blocco"), format!("{v:.0}")),
+        None => Reading::missing(&comp("altezza blocco"), "", "assente"),
     };
     let mut out = vec![(format!("completeness:{node}:{HEIGHT}"), height)];
 
@@ -91,7 +95,9 @@ pub fn rows(reply: PromReply, source: &str, now: DateTime<Utc>) -> Result<Vec<Ro
     let mut nodes: BTreeMap<&str, BTreeMap<&str, &PromSample>> = BTreeMap::new();
     for s in &samples {
         let name = label(s, "__name__");
-        if name != HEIGHT && name != RUN_TS && !CONTINUITY.iter().any(|(m, _)| *m == name) {
+        if ![HEIGHT, BLOCK_TIME, RUN_TS].contains(&name)
+            && !CONTINUITY.iter().any(|(m, _)| *m == name)
+        {
             continue;
         }
         let node = s
