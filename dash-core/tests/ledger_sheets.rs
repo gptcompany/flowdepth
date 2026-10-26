@@ -106,10 +106,11 @@ fn completeness_active_detector_flags_gaps_and_absent_series() {
         cell(get("hl_block_continuity_last_block"), 2),
         ("99", Severity::Ok)
     );
-    assert_eq!(
-        cell(get("hl_block_continuity_gap_blocks_total"), 2),
-        ("3", Severity::Warn)
-    );
+    let gaps = get("hl_block_continuity_gap_blocks_total");
+    assert_eq!(cell(gaps, 2), ("3", Severity::Warn));
+    // The warning is about the gap, not the run's age, which is known (R1, rev-fd4-r4).
+    assert_eq!(gaps.cells[1].value, completeness::GAPS_STATUS);
+    assert_eq!(gaps.cells[4].value, "120");
     assert_eq!(
         cell(get("hl_block_continuity_last_gap_end"), 2),
         ("assente", Severity::Missing)

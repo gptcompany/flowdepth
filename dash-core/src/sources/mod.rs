@@ -68,9 +68,16 @@ pub(crate) fn run_freshness(
     (severity, row)
 }
 
-/// A value produced by the run in `run`: it carries the run's timestamp and age.
-pub(crate) fn derived(run: &Reading, base: Severity, component: String, value: String) -> Reading {
-    let status = if base == Severity::Warn {
+/// A value produced by the run in `run`: it carries the run's timestamp and age. Whether that
+/// age is known depends only on the run timestamp, never on `severity`, which may carry another
+/// cause (e.g. missing blocks).
+pub(crate) fn derived(
+    run: &Reading,
+    severity: Severity,
+    component: String,
+    value: String,
+) -> Reading {
+    let status = if run.ts.is_none() {
         "età della fonte ignota"
     } else {
         "presente"
@@ -79,7 +86,7 @@ pub(crate) fn derived(run: &Reading, base: Severity, component: String, value: S
         component,
         status: status.to_owned(),
         value,
-        severity: base,
+        severity,
         source: String::new(),
         ts: run.ts,
         age_s: run.age_s,

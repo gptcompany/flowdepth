@@ -36,6 +36,7 @@ pub const CONTINUITY_STALE_S: i64 = 900;
 /// sub-second; 15 minutes only flags a node that has stopped, not one that lags.
 pub const BLOCK_STALE_S: i64 = 900;
 pub const INACTIVE: &str = "rilevatore non attivo";
+pub const GAPS_STATUS: &str = "blocchi mancanti";
 
 /// Rows for one node: height, then either «rilevatore non attivo» or run age plus each series.
 fn node_rows(
@@ -76,10 +77,12 @@ fn node_rows(
     );
     for (metric, title) in CONTINUITY {
         let r = match value(metric) {
-            // Missing blocks are a completeness defect, even on a fresh run.
-            Some(v) if metric == GAPS && v > 0.0 && base == Severity::Ok => {
-                derived(&run, Severity::Warn, comp(title), format!("{v:.0}"))
-            }
+            // Missing blocks are a completeness defect, even on a fresh run: the status names
+            // that cause, while ts/age stay the run's.
+            Some(v) if metric == GAPS && v > 0.0 && base == Severity::Ok => Reading {
+                status: GAPS_STATUS.into(),
+                ..derived(&run, Severity::Warn, comp(title), format!("{v:.0}"))
+            },
             Some(v) => derived(&run, base, comp(title), format!("{v:.0}")),
             None => Reading::missing(&comp(title), "", "assente"),
         };
