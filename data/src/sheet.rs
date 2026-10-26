@@ -198,10 +198,13 @@ pub mod tests {
     }
 
     #[test]
-    fn fixture_has_three_sheets_and_every_severity() {
+    fn fixture_has_every_sheet_and_every_severity() {
         let sheets = fixture();
         let ids: Vec<_> = sheets.sheets.iter().map(|s| s.id.as_str()).collect();
-        assert_eq!(ids, ["infra", "alerts", "rektslug"]);
+        assert_eq!(
+            ids,
+            ["infra", "alerts", "rektslug", "completeness", "shadow"]
+        );
         for sheet in &sheets.sheets {
             for row in &sheet.rows {
                 assert_eq!(row.cells.len(), sheet.columns.len(), "{}", row.id);

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dash-core</title>
+<style>
+  :root { --bg: #fff; --fg: #1b1b1b; --muted: #666; --line: #ddd;
+          --ok: #1a7f37; --warn: #9a6700; --crit: #cf222e; --stale: #8250df; --missing: #57606a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --line: #30363d;
+            --ok: #3fb950; --warn: #d29922; --crit: #f85149; --stale: #a371f7; --missing: #8b949e; }
+  }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; margin: 0 16px 32px; }
+  h1 { font-size: 18px; } h2 { font-size: 16px; margin-top: 28px; }
+  .meta, .src { color: var(--muted); font-size: 12px; }
+  #banner { display: none; padding: 8px; border: 1px solid var(--crit); color: var(--crit); }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.sev { font-weight: 600; white-space: nowrap; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .crit { color: var(--crit); }
+  .stale { color: var(--stale); } .missing { color: var(--missing); }
+</style>
+</head>
+<body>
+<h1>dash-core</h1>
+<p class="meta">Aggiornamento ogni 30 s da <code>/v1/sheets</code>. Generato: <span id="generated">mai</span></p>
+<div id="banner"></div>
+<div id="sheets"></div>
+<script>
+"use strict";
+// Severity label shown to the operator: a missing or old datum never reads as "ok".
+const SEV = { ok: "ok", warn: "attenzione", crit: "critico", stale: "vecchio", missing: "assente" };
+const COLS = { component: "componente", status: "stato", value: "valore", source: "fonte", age_s: "età (s)" };
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+
+// Latest cell timestamp per source of a sheet; a source with no timestamp is "assente".
+function sourceTimes(sheet) {
+  const latest = new Map();
+  for (const row of sheet.rows) {
+    for (const c of row.cells) {
+      const prev = latest.get(c.source);
+      if (prev === undefined) latest.set(c.source, c.ts);
+      else if (c.ts && (!prev || c.ts > prev)) latest.set(c.source, c.ts);
+    }
+  }
+  return [...latest].map(([s, ts]) => s + ": " + (ts || "assente")).join(" · ");
+}
+
+function render(doc) {
+  document.getElementById("generated").textContent = doc.generated_at;
+  const root = document.getElementById("sheets");
+  root.replaceChildren();
+  for (const sheet of doc.sheets) {
+    root.append(el("h2", sheet.title));
+    root.append(el("p", "Ultimo aggiornamento per fonte: " + sourceTimes(sheet), "src"));
+    const table = el("table");
+    const head = el("tr");
+    head.append(el("th", "gravità"));
+    for (const c of sheet.columns) head.append(el("th", COLS[c] || c));
+    table.append(head);
+    for (const row of sheet.rows) {
+      const tr = el("tr");
+      const sev = row.cells.length ? row.cells[0].severity : "missing";
+      tr.append(el("td", SEV[sev] || sev, "sev " + sev));
+      for (const c of row.cells) tr.append(el("td", c.value, c.severity));
+      table.append(tr);
+    }
+    const wrap = el("div", undefined, "wrap");
+    wrap.append(table);
+    root.append(wrap);
+  }
+}
+
+async function refresh() {
+  const banner = document.getElementById("banner");
+  try {
+    const resp = await fetch("/v1/sheets", { cache: "no-store" });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    render(await resp.json());
+    banner.style.display = "none";
+  } catch (err) {
+    // Keep the last tables on screen, but say they are not current.
+    banner.textContent = "dash-core non raggiungibile (" + err.message + "): dati mostrati non aggiornati";
+    banner.style.display = "block";
+  }
+}
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>

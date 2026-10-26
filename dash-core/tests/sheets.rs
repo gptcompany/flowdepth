@@ -41,12 +41,14 @@ async fn unset_env_yields_missing_cells_naming_the_variable() {
     let r = collect(config(None, None)).await;
     assert_eq!(
         r.sheets.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
-        ["infra", "alerts", "rektslug"]
+        ["infra", "alerts", "rektslug", "completeness", "shadow"]
     );
     for (id, var) in [
         ("infra", "DASH_PROM_URL"),
         ("alerts", "DASH_PROM_URL"),
         ("rektslug", "DASH_REKTSLUG_URL"),
+        ("completeness", "DASH_PROM_URL"),
+        ("shadow", "DASH_PROM_URL"),
     ] {
         let s = sheet(&r, id);
         assert_all_missing(s);
@@ -70,6 +72,11 @@ async fn source_returning_5xx_yields_missing_with_reason() {
             "{s:#?}"
         );
     }
+    for id in ["completeness", "shadow"] {
+        let s = sheet(&r, id);
+        assert_all_missing(s);
+        assert_eq!(s.rows[0].cells[2].value, "assente: http 503", "{s:#?}");
+    }
 }
 
 #[tokio::test]
@@ -86,6 +93,17 @@ async fn unreachable_source_yields_missing_with_reason() {
         assert_all_missing(s);
         assert!(
             s.rows[0].cells[2].value.starts_with("request failed"),
+            "{s:#?}"
+        );
+    }
+    // Prometheus down: the new sheets say «assente», never `ok`.
+    for id in ["completeness", "shadow"] {
+        let s = sheet(&r, id);
+        assert_all_missing(s);
+        assert!(
+            s.rows[0].cells[2]
+                .value
+                .starts_with("assente: request failed"),
             "{s:#?}"
         );
     }
@@ -312,6 +330,66 @@ async fn http_endpoint_serves_200_even_when_every_source_is_down() {
         .unwrap();
     assert_eq!(resp.status(), 200);
     let body: SheetsResponse = resp.json().await.unwrap();
-    assert_eq!(body.sheets.len(), 3);
+    assert_eq!(body.sheets.len(), 5);
     body.sheets.iter().for_each(assert_all_missing);
+}
+
+#[tokio::test]
+async fn root_serves_the_self_contained_operator_page() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let collector = Arc::new(Collector::new(config(None, None)).unwrap());
+    tokio::spawn(async move { axum::serve(listener, router(collector)).await.unwrap() });
+
+    let resp = reqwest::get(format!("http://{addr}/")).await.unwrap();
+    assert_eq!(resp.status(), 200);
+    let ctype = resp.headers()["content-type"].to_str().unwrap().to_owned();
+    assert!(ctype.starts_with("text/html"), "{ctype}");
+    let body = resp.text().await.unwrap();
+    assert!(body.contains(r#"fetch("/v1/sheets""#));
+    assert!(body.contains("setInterval(refresh, 30000)"));
+    // One file: no external script, stylesheet or font.
+    for needle in ["<script src", "<link", "http://", "https://", "@import"] {
+        assert!(!body.contains(needle), "page references {needle}");
+    }
+}
+
+#[tokio::test]
+async fn shadow_reads_orders_at_utc_midnight_and_only_prometheus_queries() {
+    let (prom, rekt) = (MockServer::start().await, MockServer::start().await);
+    mount_recorded(&prom, &rekt).await;
+    let r = collect(config(Some(&prom.uri()), None)).await;
+    assert_eq!(
+        sheet(&r, "shadow").rows[0].cells[2].value,
+        "nessun dato dal ledger shadow"
+    );
+    let reqs = prom.received_requests().await.unwrap();
+    let midnight = reqs
+        .iter()
+        .filter(|q| {
+            q.url
+                .query_pairs()
+                .any(|(k, v)| k == "query" && v == "nautilus_shadow_orders_total")
+        })
+        .map(|q| {
+            q.url
+                .query_pairs()
+                .find(|(k, _)| k == "time")
+                .map(|(_, v)| v.into_owned())
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(midnight, [Some("1791849600".to_owned())]);
+    let resets = "sum by (strategy, status) (resets(nautilus_shadow_orders_total[43500s]))";
+    assert!(
+        reqs.iter().any(|q| q
+            .url
+            .query_pairs()
+            .any(|(k, v)| k == "query" && v == resets)),
+        "reset check since 00:00Z not queried"
+    );
+    assert!(
+        reqs.iter()
+            .all(|q| q.method.as_str() == "GET" && q.url.path().starts_with("/api/v1/")),
+        "only GET /api/v1/* on Prometheus"
+    );
 }

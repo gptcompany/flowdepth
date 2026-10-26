@@ -52,6 +52,25 @@ pub async fn mount_prom(server: &MockServer, up: String, hl: String) {
     }
 }
 
+/// The `completeness` and `shadow` queries; the shadow midnight query reuses the ledger reply.
+pub async fn mount_ledgers(server: &MockServer, completeness: String, shadow: String) {
+    for (q, body) in [
+        (COMPLETENESS_QUERY, completeness),
+        (SHADOW_QUERY, shadow.clone()),
+        ("nautilus_shadow_orders_total", shadow),
+    ] {
+        Mock::given(method("GET"))
+            .and(path("/api/v1/query"))
+            .and(query_param("query", q))
+            .respond_with(json(body))
+            .mount(server)
+            .await;
+    }
+}
+
+pub const COMPLETENESS_QUERY: &str = r#"{__name__=~"hl_block_continuity_(last_block|gap_blocks_total|last_gap_start|last_gap_end|run_timestamp_seconds)|hl_core_block_height|hl_core_latest_block_time"}"#;
+pub const SHADOW_QUERY: &str = r#"{__name__=~"nautilus_shadow_(orders_total|fills_total|blocked_without_id_total|realized_pnl_usd|last_order_timestamp_seconds|exporter_run_timestamp_seconds)"}"#;
+
 pub async fn mount_alerts(server: &MockServer, body: String) {
     Mock::given(method("GET"))
         .and(path("/api/v1/alerts"))
@@ -86,6 +105,12 @@ pub async fn mount_recorded(prom: &MockServer, rekt: &MockServer) {
     )
     .await;
     mount_alerts(prom, fixture("recorded/prometheus_alerts.json")).await;
+    mount_ledgers(
+        prom,
+        fixture("recorded/prom_completeness.json"),
+        fixture("recorded/prom_shadow.json"),
+    )
+    .await;
     mount_rektslug(
         rekt,
         fixture("recorded/rektslug_health.json"),
