@@ -99,8 +99,9 @@ jobs.
 ## Install on the Mac (launchd)
 
 Phase 1 of gbg-agents#883: a user LaunchAgent on the Mac, loopback only (`127.0.0.1:8790`, no
-auth), reading the primary Prometheus over WireGuard. Same pattern as gbg-agents
-`scripts/metrics` (template rendered with `plistlib`, `bootout || true` then `bootstrap`). No step
+auth), reading the primary Prometheus over WireGuard. Derived from gbg-agents `scripts/metrics`
+(plist written with `plistlib`, `bootout || true` then `bootstrap`), but with no template: the
+agent is built as a fixed set of keys in `dash-core/deploy/render-plist.py`. No step
 needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`. Python
 steps run through `uv run --no-project --python 3.12` (the system `python3` of macOS may be 3.9);
 waits and checks use `curl --max-time`, no `timeout`/`gtimeout`.
@@ -135,16 +136,15 @@ cp target/release/dash-core ~/.local/share/dash-core/"$SHA"/dash-core
 ln -sfn "$SHA" ~/.local/share/dash-core/current
 ```
 
-Install the agent. The render requires `--prom-url` (an http(s) server root with host and port, no
-credentials; errors never echo the value), refuses a non-loopback `DASH_BIND`, and refuses a
-template whose `ProgramArguments` is not exactly the binary or that sets `DASH_BIND` anywhere else.
-Every refusal exits != 0 and writes nothing:
+Install the agent. The render takes only `--prom-url` (an http(s) server root with host and port, no
+credentials; errors never echo the value) and `HOME`; label, binary path, bind `127.0.0.1:8790` and
+log path are fixed in the script. Every refusal exits != 0 and writes nothing:
 
 ```sh
 mkdir -p ~/Library/LaunchAgents
 P=~/Library/LaunchAgents/com.gobabygo.dash-core.plist
 uv run --no-project --python 3.12 dash-core/deploy/render-plist.py --prom-url "$PROM_URL" \
-  dash-core/deploy/com.gobabygo.dash-core.plist.in > "$P.new" && mv "$P.new" "$P"
+  > "$P.new" && mv "$P.new" "$P"
 plutil -lint "$P"
 launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$P"
