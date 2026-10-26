@@ -103,8 +103,21 @@ auth), reading the primary Prometheus over WireGuard. Same pattern as gbg-agents
 `scripts/metrics` (template rendered with `plistlib`, `bootout || true` then `bootstrap`). No step
 needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`.
 
-Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches Prometheus:
-`curl -s -m 5 http://10.0.0.7:30090/-/ready` prints a ready message.
+The Prometheus URL is not fixed: it is `http://<WG IP of the node hosting the primary
+Prometheus>:30090` (monitoring-stack `docs/runbook-prometheus-wireguard.md`; with
+`externalTrafficPolicy: Local` only that node answers, and the IP changes when the primary moves).
+Take the current node from the runbook. Example verified on 2026-10-26: tk-mon,
+`PROM_URL=http://10.0.0.7:30090`.
+
+Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches that node. Stop here if either check fails
+(wrong node or tunnel down):
+
+```sh
+PROM_URL=http://10.0.0.7:30090                                    # current node, see above
+curl -s -m 5 "$PROM_URL/-/ready"                                  # ready message
+curl -s -m 5 "$PROM_URL/api/v1/query?query=up" \
+  | python3 -c 'import json,sys; sys.exit(json.load(sys.stdin)["status"] != "success")' && echo ok
+```
 
 Build from an explicit sha and record it with the binary digest:
 
@@ -117,11 +130,13 @@ cp target/release/dash-core ~/.local/share/dash-core/"$SHA"/dash-core
 ln -sfn "$SHA" ~/.local/share/dash-core/current
 ```
 
-Install the agent (the render refuses a non-loopback `DASH_BIND`, exit 1):
+Install the agent (the render requires `--prom-url`, an http(s) URL with host and port, and refuses
+a non-loopback `DASH_BIND`; both fail with exit != 0 and write nothing):
 
 ```sh
 P=~/Library/LaunchAgents/com.gobabygo.dash-core.plist
-python3 dash-core/deploy/render-plist.py dash-core/deploy/com.gobabygo.dash-core.plist.in > "$P"
+python3 dash-core/deploy/render-plist.py --prom-url "$PROM_URL" \
+  dash-core/deploy/com.gobabygo.dash-core.plist.in > "$P.new" && mv "$P.new" "$P"
 plutil -lint "$P"
 launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$P"

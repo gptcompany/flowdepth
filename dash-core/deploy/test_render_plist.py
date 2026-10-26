@@ -16,12 +16,21 @@ SCRIPT = HERE / "render-plist.py"
 TEMPLATE = HERE / "com.gobabygo.dash-core.plist.in"
 
 
-def run(template: Path, user: str | None = "tester") -> subprocess.CompletedProcess[bytes]:
+PROM = "http://10.0.0.7:30090"
+
+
+def run(
+    template: Path, user: str | None = "tester", prom: str | None = PROM
+) -> subprocess.CompletedProcess[bytes]:
     env = {k: v for k, v in os.environ.items() if k != "USER"}
     if user is not None:
         env["USER"] = user
+    url = [] if prom is None else ["--prom-url", prom]
     return subprocess.run(
-        [sys.executable, str(SCRIPT), str(template)], env=env, capture_output=True, check=False
+        [sys.executable, str(SCRIPT), *url, str(template)],
+        env=env,
+        capture_output=True,
+        check=False,
     )
 
 
@@ -49,6 +58,7 @@ class RenderTest(unittest.TestCase):
         log = "/Users/tester/.local/state/dash-core/dash-core.log"
         self.assertEqual((plist["StandardOutPath"], plist["StandardErrorPath"]), (log, log))
         self.assertNotIn(b"@USER@", out.stdout)
+        self.assertNotIn(b"@PROM_URL@", out.stdout)
 
     def test_non_loopback_or_portless_bind_is_refused(self) -> None:
         # Temporary templates live under the worktree, removed on exit.
@@ -69,6 +79,24 @@ class RenderTest(unittest.TestCase):
             ok = Path(tmp) / "v6.plist.in"
             ok.write_bytes(with_bind("[::1]:8790"))
             self.assertEqual(run(ok).returncode, 0)
+
+    def test_missing_or_invalid_prom_url_is_refused(self) -> None:
+        out = run(TEMPLATE, prom=None)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertEqual(out.stdout, b"")
+        for url in [
+            "",
+            "10.0.0.7:30090",
+            "ftp://10.0.0.7:30090",
+            "http://10.0.0.7",
+            "http://:30090",
+            "http://u:p@10.0.0.7:30090",
+            "http://10.0.0.7:notaport",
+        ]:
+            out = run(TEMPLATE, prom=url)
+            self.assertNotEqual(out.returncode, 0, url)
+            self.assertEqual(out.stdout, b"", url)
+            self.assertIn(b"refused", out.stderr, url)
 
     def test_missing_user_is_refused(self) -> None:
         out = run(TEMPLATE, user=None)

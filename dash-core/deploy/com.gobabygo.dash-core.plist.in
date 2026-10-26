@@ -9,14 +9,15 @@
 	<array>
 		<string>/Users/@USER@/.local/share/dash-core/current/dash-core</string>
 	</array>
-	<!-- Loopback only: render-plist.py refuses any other DASH_BIND. DASH_REKTSLUG_URL is left
-	     unset on purpose, so the rektslug sheet reads missing. -->
+	<!-- Loopback only: render-plist.py refuses any other DASH_BIND. @PROM_URL@ comes from
+	     render-plist.py prom-url (the current Prometheus node, monitoring-stack runbook).
+	     DASH_REKTSLUG_URL is left unset on purpose, so the rektslug sheet reads missing. -->
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>DASH_BIND</key>
 		<string>127.0.0.1:8790</string>
 		<key>DASH_PROM_URL</key>
-		<string>http://10.0.0.7:30090</string>
+		<string>@PROM_URL@</string>
 	</dict>
 	<key>RunAtLoad</key>
 	<true/>
