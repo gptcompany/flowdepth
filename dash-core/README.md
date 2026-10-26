@@ -96,6 +96,86 @@ jobs.
 196 rows, each checked against the raw `/api/v1/alerts` reply. The Prometheus URL is replaced by
 `http://<prometheus>/`.
 
+## Install on the Mac (launchd)
+
+Phase 1 of gbg-agents#883: a user LaunchAgent on the Mac, loopback only (`127.0.0.1:8790`, no
+auth), reading the primary Prometheus over WireGuard. Derived from gbg-agents `scripts/metrics`
+(plist written with `plistlib`, `bootout || true` then `bootstrap`), but with no template: the
+agent is built as a fixed set of keys in `dash-core/deploy/render-plist.py`. No step
+needs `sudo`. `DASH_REKTSLUG_URL` is not set, so the `rektslug` sheet reads `missing`. Python
+steps run through `uv run --no-project --python 3.12` (the system `python3` of macOS may be 3.9);
+waits and checks use `curl --max-time`, no `timeout`/`gtimeout`.
+
+The Prometheus URL is not fixed: it is `http://<WG IP of the node hosting the primary
+Prometheus>:30090` (monitoring-stack `docs/runbook-prometheus-wireguard.md`; with
+`externalTrafficPolicy: Local` only that node answers, and the IP changes when the primary moves).
+Take the current node from the runbook ("IP del nodo corrente"). Example verified on 2026-10-26
+(flowdepth#4 e2e at 10:46Z): tk-mon, `--prom-url http://10.0.0.7:30090`. The runbook still names
+`10.0.0.4` as the primary on that date (gptcompany/gbg-agents F-444): the checks below catch a
+wrong node. The URL is the server root: no path, query or credentials.
+
+Prerequisite: the Mac (WireGuard `10.0.0.5`) reaches that node. Stop here if either check fails
+(wrong node or tunnel down):
+
+```sh
+PROM_URL=http://10.0.0.7:30090                                    # current node, see above
+curl -s --max-time 5 "$PROM_URL/-/ready"                          # ready message
+curl -s --max-time 5 "$PROM_URL/api/v1/query?query=up" \
+  | uv run --no-project --python 3.12 python -c \
+    'import json,sys; sys.exit(json.load(sys.stdin)["status"] != "success")' && echo ok
+```
+
+Build from an explicit sha and record it with the binary digest:
+
+```sh
+SHA=<sha40>; git checkout "$SHA"
+cargo build --release --locked -p dash-core
+shasum -a 256 target/release/dash-core          # note sha and digest
+mkdir -p ~/.local/share/dash-core/"$SHA" ~/.local/state/dash-core
+cp target/release/dash-core ~/.local/share/dash-core/"$SHA"/dash-core
+ln -sfn "$SHA" ~/.local/share/dash-core/current
+```
+
+Install the agent. The render takes only `--prom-url` (an http(s) server root with host and port, no
+credentials; errors never echo the value) and `HOME`; label, binary path, bind `127.0.0.1:8790` and
+log path are fixed in the script. Every refusal exits != 0 and writes nothing:
+
+```sh
+mkdir -p ~/Library/LaunchAgents
+P=~/Library/LaunchAgents/com.gobabygo.dash-core.plist
+uv run --no-project --python 3.12 dash-core/deploy/render-plist.py --prom-url "$PROM_URL" \
+  > "$P.new" && mv "$P.new" "$P"
+plutil -lint "$P"
+launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$P"
+```
+
+Acceptance:
+
+```sh
+curl -s --max-time 10 127.0.0.1:8790/v1/sheets                    # real data, five sheets
+curl -s --max-time 10 -o /dev/null -w '%{http_code}\n' 127.0.0.1:8790/   # 200
+lsof -nP -iTCP:8790 -sTCP:LISTEN                                  # only 127.0.0.1:8790
+```
+
+Counter-check: a second instance in the foreground of another terminal, against a closed port;
+every Prometheus cell must read `missing`. Close it with Ctrl-C in that terminal afterwards:
+
+```sh
+DASH_BIND=127.0.0.1:8791 DASH_PROM_URL=http://127.0.0.1:9 \
+  ~/.local/share/dash-core/current/dash-core                # terminal 2, foreground
+curl -s --max-time 10 127.0.0.1:8791/v1/sheets              # terminal 1
+```
+
+Rollback: `ln -sfn <previous_sha> ~/.local/share/dash-core/current` then
+`launchctl kickstart -k "gui/$(id -u)/com.gobabygo.dash-core"`.
+
+Uninstall: `launchctl bootout "gui/$(id -u)/com.gobabygo.dash-core"` then
+`rm ~/Library/LaunchAgents/com.gobabygo.dash-core.plist`.
+
+Render test (Linux or Mac, stdlib only, not run by the Rust CI):
+`uv run --no-project --python 3.12 python -B -m unittest discover -s dash-core/deploy -v`.
+
 ## Known gaps (TODO)
 
 - Prometheus instant queries stamp samples with the evaluation time, so Prometheus staleness only
