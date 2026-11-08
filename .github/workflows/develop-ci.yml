@@ -24,19 +24,21 @@ jobs:
     if: >-
       github.event_name != 'push' ||
       !contains(join(github.event.commits.*.message, ' '), '[skip-ci]')
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
+      - name: Verify provisioned Linux dependencies
+        shell: python
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libasound2-dev
+          import subprocess
+          packages = ["build-essential", "pkg-config", "libudev-dev", "libxkbcommon-dev", "libasound2-dev"]
+          for package in packages:
+              result = subprocess.run(["dpkg-query", "-W", "-f=${Status}", package], check=True, capture_output=True, text=True)
+              if result.stdout.strip() != "install ok installed":
+                  raise SystemExit(f"Runner provisioning required: {package}")
 
       - name: Install configured Rust toolchain
         run: |
@@ -72,7 +74,7 @@ jobs:
     needs:
       - quality
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       contents: write
     outputs:
@@ -161,10 +163,12 @@ jobs:
           fi
 
   build:
+    # Hosted native runners unavailable until 2026-12-01; B5 must approve their return.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     name: Build ${{ matrix.target.name }}
     needs:
       - prepare-release
-    runs-on: ${{ matrix.target.os }}
+    runs-on: ${{ matrix.target.os == 'sg-ci' && (vars.CI_RUNS_ON || 'sg-ci') || matrix.target.os }}
     permissions:
       contents: write
     strategy:
@@ -176,7 +180,7 @@ jobs:
             command: bash scripts/build-windows.sh x86_64
             package: target/release/flowsurface-x86_64-windows.zip
           - name: Linux x64
-            os: ubuntu-latest
+            os: sg-ci
             command: bash scripts/package-linux.sh package x86_64
             package: target/release/flowsurface-x86_64-linux.tar.gz
           - name: macOS universal
@@ -188,16 +192,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
+      - name: Verify provisioned Linux dependencies
         if: runner.os == 'Linux'
+        shell: python
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libudev-dev \
-            libxkbcommon-dev \
-            libasound2-dev
+          import subprocess
+          packages = ["build-essential", "pkg-config", "libudev-dev", "libxkbcommon-dev", "libasound2-dev"]
+          for package in packages:
+              result = subprocess.run(["dpkg-query", "-W", "-f=${Status}", package], check=True, capture_output=True, text=True)
+              if result.stdout.strip() != "install ok installed":
+                  raise SystemExit(f"Runner provisioning required: {package}")
 
       - name: Install configured Rust toolchain
         run: rustup show
@@ -231,7 +235,7 @@ jobs:
     needs:
       - prepare-release
       - build
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       contents: write
 
