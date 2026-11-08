@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify provisioned Linux dependencies
-        shell: python
+        shell: python3 {0}
         run: |
           import subprocess
           packages = ["build-essential", "pkg-config", "libudev-dev", "libxkbcommon-dev", "libasound2-dev"]
@@ -194,7 +194,7 @@ jobs:
 
       - name: Verify provisioned Linux dependencies
         if: runner.os == 'Linux'
-        shell: python
+        shell: python3 {0}
         run: |
           import subprocess
           packages = ["build-essential", "pkg-config", "libudev-dev", "libxkbcommon-dev", "libasound2-dev"]
